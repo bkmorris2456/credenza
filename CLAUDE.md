@@ -79,6 +79,12 @@ Read docs/SPEC.md to understand project expectations, goals, and tech stack
 
 ### CATCHUP.md
 
-If I write the phrase "catch me up", I want you to access docs/CATCHUP.md and recite a summary of what was worked on and developed during our last session. To add information into CATCHUP.md, I will say "we are starting" and then follow with my first question of our session
+If I write the phrase "catch me up", I want you to access docs/CATCHUP.md and recite a summary of what was worked on and developed during our last session. To add information into CATCHUP.md, I will say "we are starting" and then follow with my first question of our session.
 
-For immediate tasks to work on, see docs/TODO.md
+### TODO.md
+
+docs/TODO.md is your go-to on where to go to understand what features and fixes need to be developed next. Finish each task one at a time, and once it's finished, stop and report that the task is done, add any relevant summary data into docs/CATCHUP.md, and wait until I say to move forward onto the next task
+
+### Regarding Testing
+
+Before you ask for permissions on testing, tell me what you are testing, and I will decide whether I will test it myself or I will let you test it

@@ -1,9 +1,5 @@
 # Today's TODO
 
-1. Switch to Category to a select instead of a type, and if they want to add a category at that moment
-	1. add button at the bottom of the selection to create a category and add it on the spot
-	2. Same for the Unit too
-    3. Fix the addition of new categories or units. Right now, they say failed to add
 2. Clean up the structure of the item overview screen when confirming the addition of an ingredient
 	1. Better pathing, like a button to return to the list overview
 3. Filter System for each column for ingredients and recipes
