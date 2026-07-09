@@ -12,20 +12,22 @@ import CircularProgress from '@mui/material/CircularProgress';
 import Divider from '@mui/material/Divider';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { getRecipe } from '../services/recipeService';
+import { useHousehold } from '../contexts/HouseholdContext';
 import type { Recipe } from '../types';
 
 export default function RecipeDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { householdId } = useHousehold();
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!id) return;
+    if (!id || !householdId) return;
     (async () => {
       try {
-        const data = await getRecipe(id);
+        const data = await getRecipe(householdId, id);
         if (!data) setError('Recipe not found.');
         else setRecipe(data);
       } catch (err) {
@@ -35,7 +37,7 @@ export default function RecipeDetailPage() {
         setLoading(false);
       }
     })();
-  }, [id]);
+  }, [id, householdId]);
 
   if (loading) {
     return (

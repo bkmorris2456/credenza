@@ -8,15 +8,20 @@ import {
   deleteDoc,
   query,
   orderBy,
+  serverTimestamp,
 } from 'firebase/firestore';
 import { db } from './firebase';
 import type { Ingredient } from '../types';
 
-const COL = 'ingredients';
+const ingredientsCol = (householdId: string) =>
+  collection(db, 'households', householdId, 'ingredients');
 
-export async function getIngredients(): Promise<Ingredient[]> {
+const ingredientDoc = (householdId: string, id: string) =>
+  doc(db, 'households', householdId, 'ingredients', id);
+
+export async function getIngredients(householdId: string): Promise<Ingredient[]> {
   try {
-    const snap = await getDocs(query(collection(db, COL), orderBy('name')));
+    const snap = await getDocs(query(ingredientsCol(householdId), orderBy('name')));
     return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Ingredient));
   } catch (err) {
     console.error('[ingredientService] getIngredients:', err);
@@ -24,9 +29,12 @@ export async function getIngredients(): Promise<Ingredient[]> {
   }
 }
 
-export async function getIngredient(id: string): Promise<Ingredient | null> {
+export async function getIngredient(
+  householdId: string,
+  id: string
+): Promise<Ingredient | null> {
   try {
-    const snap = await getDoc(doc(db, COL, id));
+    const snap = await getDoc(ingredientDoc(householdId, id));
     return snap.exists() ? ({ id: snap.id, ...snap.data() } as Ingredient) : null;
   } catch (err) {
     console.error('[ingredientService] getIngredient:', err);
@@ -34,9 +42,16 @@ export async function getIngredient(id: string): Promise<Ingredient | null> {
   }
 }
 
-export async function addIngredient(data: Omit<Ingredient, 'id'>): Promise<string> {
+export async function addIngredient(
+  householdId: string,
+  data: Omit<Ingredient, 'id' | 'createdAt' | 'updatedAt'>
+): Promise<string> {
   try {
-    const ref = await addDoc(collection(db, COL), data);
+    const ref = await addDoc(ingredientsCol(householdId), {
+      ...data,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
     return ref.id;
   } catch (err) {
     console.error('[ingredientService] addIngredient:', err);
@@ -45,20 +60,24 @@ export async function addIngredient(data: Omit<Ingredient, 'id'>): Promise<strin
 }
 
 export async function updateIngredient(
+  householdId: string,
   id: string,
-  updates: Partial<Omit<Ingredient, 'id'>>
+  updates: Partial<Omit<Ingredient, 'id' | 'createdAt' | 'updatedAt'>>
 ): Promise<void> {
   try {
-    await updateDoc(doc(db, COL, id), updates);
+    await updateDoc(ingredientDoc(householdId, id), {
+      ...updates,
+      updatedAt: serverTimestamp(),
+    });
   } catch (err) {
     console.error('[ingredientService] updateIngredient:', err);
     throw err;
   }
 }
 
-export async function deleteIngredient(id: string): Promise<void> {
+export async function deleteIngredient(householdId: string, id: string): Promise<void> {
   try {
-    await deleteDoc(doc(db, COL, id));
+    await deleteDoc(ingredientDoc(householdId, id));
   } catch (err) {
     console.error('[ingredientService] deleteIngredient:', err);
     throw err;

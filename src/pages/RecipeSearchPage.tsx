@@ -18,6 +18,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import SearchBar from '../components/ui/SearchBar';
 import { getRecipes } from '../services/recipeService';
 import { getIngredients } from '../services/ingredientService';
+import { useHousehold } from '../contexts/HouseholdContext';
 import type { Recipe, Ingredient } from '../types';
 
 function canMake(recipe: Recipe, stock: Map<string, number>): boolean {
@@ -28,6 +29,7 @@ function canMake(recipe: Recipe, stock: Map<string, number>): boolean {
 
 export default function RecipeSearchPage() {
   const navigate = useNavigate();
+  const { householdId } = useHousehold();
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [stock, setStock] = useState<Map<string, number>>(new Map());
   const [search, setSearch] = useState('');
@@ -37,11 +39,12 @@ export default function RecipeSearchPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!householdId) return;
     (async () => {
       try {
         const [fetchedRecipes, ingredients] = await Promise.all([
-          getRecipes(),
-          getIngredients(),
+          getRecipes(householdId),
+          getIngredients(householdId),
         ]);
         setRecipes(fetchedRecipes);
         setStock(
@@ -54,7 +57,7 @@ export default function RecipeSearchPage() {
         setLoading(false);
       }
     })();
-  }, []);
+  }, [householdId]);
 
   const sorted = useMemo(() => {
     const available = recipes.filter((r) => canMake(r, stock));

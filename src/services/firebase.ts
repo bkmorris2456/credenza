@@ -12,6 +12,16 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
+const missingKeys = Object.entries(firebaseConfig)
+  .filter(([, value]) => !value)
+  .map(([key]) => key);
+
+if (missingKeys.length > 0) {
+  const message = `Firebase config is missing: ${missingKeys.join(', ')}. Copy .env.example to .env and fill in your Firebase project credentials, then restart the dev server.`;
+  console.error('[firebase]', message);
+  throw new Error(message);
+}
+
 const app = initializeApp(firebaseConfig);
 
 export const db = getFirestore(app);

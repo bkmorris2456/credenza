@@ -13,11 +13,15 @@ import {
 import { db } from './firebase';
 import type { Recipe } from '../types';
 
-const COL = 'recipes';
+const recipesCol = (householdId: string) =>
+  collection(db, 'households', householdId, 'recipes');
 
-export async function getRecipes(): Promise<Recipe[]> {
+const recipeDoc = (householdId: string, id: string) =>
+  doc(db, 'households', householdId, 'recipes', id);
+
+export async function getRecipes(householdId: string): Promise<Recipe[]> {
   try {
-    const snap = await getDocs(query(collection(db, COL), orderBy('name')));
+    const snap = await getDocs(query(recipesCol(householdId), orderBy('name')));
     return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Recipe));
   } catch (err) {
     console.error('[recipeService] getRecipes:', err);
@@ -25,9 +29,9 @@ export async function getRecipes(): Promise<Recipe[]> {
   }
 }
 
-export async function getRecipe(id: string): Promise<Recipe | null> {
+export async function getRecipe(householdId: string, id: string): Promise<Recipe | null> {
   try {
-    const snap = await getDoc(doc(db, COL, id));
+    const snap = await getDoc(recipeDoc(householdId, id));
     return snap.exists() ? ({ id: snap.id, ...snap.data() } as Recipe) : null;
   } catch (err) {
     console.error('[recipeService] getRecipe:', err);
@@ -35,11 +39,14 @@ export async function getRecipe(id: string): Promise<Recipe | null> {
   }
 }
 
-export async function addRecipe(data: Omit<Recipe, 'id' | 'created'>): Promise<string> {
+export async function addRecipe(
+  householdId: string,
+  data: Omit<Recipe, 'id' | 'createdAt'>
+): Promise<string> {
   try {
-    const ref = await addDoc(collection(db, COL), {
+    const ref = await addDoc(recipesCol(householdId), {
       ...data,
-      created: serverTimestamp(),
+      createdAt: serverTimestamp(),
     });
     return ref.id;
   } catch (err) {
@@ -49,20 +56,21 @@ export async function addRecipe(data: Omit<Recipe, 'id' | 'created'>): Promise<s
 }
 
 export async function updateRecipe(
+  householdId: string,
   id: string,
-  updates: Partial<Omit<Recipe, 'id' | 'created'>>
+  updates: Partial<Omit<Recipe, 'id' | 'createdAt'>>
 ): Promise<void> {
   try {
-    await updateDoc(doc(db, COL, id), updates);
+    await updateDoc(recipeDoc(householdId, id), updates);
   } catch (err) {
     console.error('[recipeService] updateRecipe:', err);
     throw err;
   }
 }
 
-export async function deleteRecipe(id: string): Promise<void> {
+export async function deleteRecipe(householdId: string, id: string): Promise<void> {
   try {
-    await deleteDoc(doc(db, COL, id));
+    await deleteDoc(recipeDoc(householdId, id));
   } catch (err) {
     console.error('[recipeService] deleteRecipe:', err);
     throw err;

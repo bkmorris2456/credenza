@@ -23,6 +23,10 @@ interface Props {
 }
 
 export default function ItemRow({ ingredient, onClick }: Props) {
+  const isExpired = Boolean(
+    ingredient.expirationDate && ingredient.expirationDate.toDate() < new Date()
+  );
+
   return (
     <TableRow
       hover
@@ -34,6 +38,9 @@ export default function ItemRow({ ingredient, onClick }: Props) {
       <TableCell>{ingredient.category}</TableCell>
       <TableCell>
         {ingredient.quantity} {ingredient.unit}
+      </TableCell>
+      <TableCell sx={isExpired ? { color: 'error.main' } : undefined}>
+        {ingredient.expirationDate ? ingredient.expirationDate.toDate().toLocaleDateString() : '—'}
       </TableCell>
       <TableCell>
         <Chip

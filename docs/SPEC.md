@@ -84,39 +84,70 @@ I want to be able to see what ingredients I currently have, and what recipes I c
 
 ## Database Design (initial design, could be subject to change depending on what the product looks like as we progress)
 ### Sidenote: This is written under the knowledge of how MySQL works, please translate this accordingly to how Firestore would work
-- users
-    - userID: primary key
-    - name: varchar(64)
-    - email: varhcar(255)
-    - password: let Firebase AUth handle it
-- ingredients
-    - ingredientID: primary key
-    - name: varchar(64)
-    - category: varchar(64)
-    - unit: varchar(64)
-    - quantity: float
-    - status: varchar(64)
-    - brand: varchar(64)
-- recipes
-    - recipeID: primary key
-    - name: varchar(64)
-    - description: varchar(255)
-    - servings: int
-    - created: timestamp
-    - ingredients: array/collection of ingredient names
-- userLogs
-    - userLogID: primary key
-    - type: varchar(64)
-    - message: varchar(255)
-    - created: timestamp
-- recipeLogs
-    - recipeLogID: primary key
-    - recipeID: foreign key reference to recipes -> recipeID
-    - created: timestamp
-- ingredientLogs
-    - ingredientLogID: primary key
-    - ingredientId: foreign key reference to ingredients -> ingredientID
-    - created: timestamp
+users/{userId}
+  name
+  email
+  activeHouseholdId
+
+households/{householdId}
+  name
+  createdByUserId
+  createdAt
+  updatedAt
+
+households/{householdId}/members/{userId}
+  role: "owner" | "admin" | "member"
+  joinedAt
+  displayName
+  email
+
+households/{householdId}/ingredients/{ingredientId}
+  name
+  category
+  unit
+  quantity
+  status
+  brand
+  createdAt
+  updatedAt
+
+households/{householdId}/categories/{categoryName}
+  name
+  createdAt
+
+households/{householdId}/units/{unitName}
+  name
+  createdAt
+
+households/{householdId}/recipes/{recipeId}
+  name
+  description
+  servings
+  createdAt
+  ingredients: [
+    {
+      ingredientId,
+      name,
+      quantity,
+      unit
+    }
+  ]
+
+households/{householdId}/userLogs/{userLogId}
+  userId
+  type
+  message
+  createdAt
+
+households/{householdId}/recipeLogs/{recipeLogId}
+  recipeId
+  userId
+  createdAt
+
+households/{householdId}/ingredientLogs/{ingredientLogId}
+  ingredientId
+  userId
+  createdAt
 
 ## UI / UX & Navigation Flow
 

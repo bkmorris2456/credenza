@@ -18,10 +18,12 @@ import SearchBar from '../components/ui/SearchBar';
 import LowStockToast from '../components/ui/LowStockToast';
 import ItemRow from '../components/ui/ItemRow';
 import { getIngredients } from '../services/ingredientService';
+import { useHousehold } from '../contexts/HouseholdContext';
 import type { Ingredient } from '../types';
 
 export default function IngredientSearchPage() {
   const navigate = useNavigate();
+  const { householdId } = useHousehold();
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
@@ -30,9 +32,10 @@ export default function IngredientSearchPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!householdId) return;
     (async () => {
       try {
-        setIngredients(await getIngredients());
+        setIngredients(await getIngredients(householdId));
       } catch (err) {
         console.error('[IngredientSearchPage] load failed:', err);
         setError('Failed to load ingredients. Please try again.');
@@ -40,7 +43,7 @@ export default function IngredientSearchPage() {
         setLoading(false);
       }
     })();
-  }, []);
+  }, [householdId]);
 
   const filtered = useMemo(
     () =>
@@ -93,13 +96,14 @@ export default function IngredientSearchPage() {
               <TableCell>Brand</TableCell>
               <TableCell>Category</TableCell>
               <TableCell>Quantity</TableCell>
+              <TableCell>Expires</TableCell>
               <TableCell>Status</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {paginated.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} align="center">
+                <TableCell colSpan={6} align="center">
                   No ingredients found.
                 </TableCell>
               </TableRow>

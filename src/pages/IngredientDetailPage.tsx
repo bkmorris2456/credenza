@@ -9,20 +9,22 @@ import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { getIngredient } from '../services/ingredientService';
+import { useHousehold } from '../contexts/HouseholdContext';
 import type { Ingredient } from '../types';
 
 export default function IngredientDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { householdId } = useHousehold();
   const [ingredient, setIngredient] = useState<Ingredient | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!id) return;
+    if (!id || !householdId) return;
     (async () => {
       try {
-        const data = await getIngredient(id);
+        const data = await getIngredient(householdId, id);
         if (!data) setError('Ingredient not found.');
         else setIngredient(data);
       } catch (err) {
@@ -32,7 +34,7 @@ export default function IngredientDetailPage() {
         setLoading(false);
       }
     })();
-  }, [id]);
+  }, [id, householdId]);
 
   if (loading) {
     return (
@@ -41,6 +43,10 @@ export default function IngredientDetailPage() {
       </Box>
     );
   }
+
+  const isExpired = Boolean(
+    ingredient?.expirationDate && ingredient.expirationDate.toDate() < new Date()
+  );
 
   return (
     <Container maxWidth="sm" sx={{ pt: 2 }}>
@@ -72,6 +78,14 @@ export default function IngredientDetailPage() {
             <Box>
               <Typography variant="caption" color="text.secondary">Quantity</Typography>
               <Typography>{ingredient.quantity} {ingredient.unit}</Typography>
+            </Box>
+            <Box>
+              <Typography variant="caption" color="text.secondary">Expires</Typography>
+              <Typography color={isExpired ? 'error' : undefined}>
+                {ingredient.expirationDate
+                  ? ingredient.expirationDate.toDate().toLocaleDateString()
+                  : '—'}
+              </Typography>
             </Box>
           </Box>
 

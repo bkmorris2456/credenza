@@ -15,15 +15,27 @@ Read docs/SPEC.md to understand project expectations, goals, and tech stack
             - AppLayout.tsx
             - BottomNav.tsx
         - ui
+            - ItemRow.tsx
+            - LowStockToast.tsx
+            - SearchBar.tsx
+            - SelectWithAdd.tsx
+    - contexts
+        - AuthContext.tsx
+        - HouseholdContext.tsx
     - pages
         - IngredientDetailPage.tsx
+        - IngredientFormPage.tsx
         - IngredientSearchPage.tsx
+        - LoginPage.tsx
         - RecipeDetailPage.tsx
+        - RecipeFormPage.tsx
         - RecipeSearchPage.tsx
     - services
         - authService.ts
         - firebase.ts
-        - IngredientService.ts
+        - householdService.ts
+        - ingredientService.ts
+        - lookupService.ts
         - recipeService.ts
     - types
         - index.ts
@@ -31,6 +43,7 @@ Read docs/SPEC.md to understand project expectations, goals, and tech stack
     - App.tsx
     - index.css
     - main.tsx
+- firestore.rules
 - .env
 - .env.example
 - .gitignore
@@ -63,5 +76,9 @@ Read docs/SPEC.md to understand project expectations, goals, and tech stack
 - The app is using React + Vite, but is mobile-friendly
 - Firestore is the database
 - Inventory updates happen immediately after recipes are confirmed
+
+### CATCHUP.md
+
+If I write the phrase "catch me up", I want you to access docs/CATCHUP.md and recite a summary of what was worked on and developed during our last session. To add information into CATCHUP.md, I will say "we are starting" and then follow with my first question of our session
 
 For immediate tasks to work on, see docs/TODO.md
