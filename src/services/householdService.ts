@@ -2,9 +2,8 @@ import {
   collection,
   doc,
   getDoc,
-  setDoc,
-  addDoc,
   serverTimestamp,
+  runTransaction,
 } from 'firebase/firestore';
 import { db } from './firebase';
 import type { Household, UserProfile } from '../types';
@@ -29,32 +28,20 @@ export async function getHousehold(householdId: string): Promise<Household | nul
   }
 }
 
-async function createHousehold(
-  userId: string,
-  email: string,
-  displayName: string
-): Promise<string> {
-  const ref = await addDoc(collection(db, 'households'), {
-    name: `${displayName}'s Kitchen`,
-    createdByUserId: userId,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  });
-
-  await setDoc(doc(db, 'households', ref.id, 'members', userId), {
-    role: 'owner',
-    joinedAt: serverTimestamp(),
-    displayName,
-    email,
-  });
-
-  return ref.id;
-}
-
 /**
  * Loads the signed-in user's profile, bootstrapping both the profile
  * document and a starter household on first sign-in. Returns the id of
  * the household that should be active for this session.
+ *
+ * The check-then-create runs inside a Firestore transaction so that
+ * concurrent calls for the same user (e.g. StrictMode's double-mount, or
+ * overlapping auth-state events) can never create more than one
+ * household: Firestore aborts and retries whichever transaction loses
+ * the race, and the retry sees the winner's activeHouseholdId already set.
+ *
+ * If activeHouseholdId is already set but its membership doc is missing
+ * (e.g. left over from a pre-transaction race), the membership doc is
+ * repaired in place rather than minting a second household.
  */
 export async function ensureHousehold(
   userId: string,
@@ -62,20 +49,48 @@ export async function ensureHousehold(
   displayName: string
 ): Promise<string> {
   try {
-    const profile = await getUserProfile(userId);
-    if (profile?.activeHouseholdId) {
-      return profile.activeHouseholdId;
-    }
+    const userRef = doc(db, 'users', userId);
 
-    const householdId = await createHousehold(userId, email, displayName);
+    return await runTransaction(db, async (tx) => {
+      const userSnap = await tx.get(userRef);
+      const existingId = userSnap.data()?.activeHouseholdId as string | undefined;
+      if (existingId) {
+        const memberRef = doc(db, 'households', existingId, 'members', userId);
+        const memberSnap = await tx.get(memberRef);
+        if (!memberSnap.exists()) {
+          tx.set(memberRef, {
+            role: 'owner',
+            joinedAt: serverTimestamp(),
+            displayName,
+            email,
+          });
+        }
+        return existingId;
+      }
 
-    await setDoc(doc(db, 'users', userId), {
-      name: displayName,
-      email,
-      activeHouseholdId: householdId,
+      const householdRef = doc(collection(db, 'households'));
+      tx.set(householdRef, {
+        name: `${displayName}'s Kitchen`,
+        createdByUserId: userId,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+
+      tx.set(doc(db, 'households', householdRef.id, 'members', userId), {
+        role: 'owner',
+        joinedAt: serverTimestamp(),
+        displayName,
+        email,
+      });
+
+      tx.set(userRef, {
+        name: displayName,
+        email,
+        activeHouseholdId: householdRef.id,
+      });
+
+      return householdRef.id;
     });
-
-    return householdId;
   } catch (err) {
     console.error('[householdService] ensureHousehold:', err);
     throw err;

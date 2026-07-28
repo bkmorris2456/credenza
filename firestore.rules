@@ -21,7 +21,11 @@ service cloud.firestore {
       allow delete: if false;
 
       match /members/{memberId} {
-        allow read: if isMember(householdId);
+        // A user can always read their own membership doc, even if it
+        // doesn't exist yet (isMember() alone would deny that read, since
+        // it checks exists() on this same doc). This lets client code
+        // detect and repair a missing membership doc.
+        allow read: if isMember(householdId) || (isSignedIn() && request.auth.uid == memberId);
         // A user may add themself as a member (e.g. bootstrapping their
         // own starter household). Adding other members isn't supported yet.
         allow create: if isSignedIn() && request.auth.uid == memberId;

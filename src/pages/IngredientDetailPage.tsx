@@ -8,6 +8,7 @@ import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import ListAltIcon from '@mui/icons-material/ListAlt';
 import { getIngredient } from '../services/ingredientService';
 import { useHousehold } from '../contexts/HouseholdContext';
 import type { Ingredient } from '../types';
@@ -50,27 +51,26 @@ export default function IngredientDetailPage() {
 
   return (
     <Container maxWidth="sm" sx={{ pt: 2 }}>
-      <IconButton onClick={() => navigate(-1)} sx={{ mb: 1 }}>
-        <ArrowBackIcon />
-      </IconButton>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+        <IconButton onClick={() => navigate('/ingredients')} aria-label="Back to inventory">
+          <ArrowBackIcon />
+        </IconButton>
+        <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
+          {ingredient ? ingredient.name : 'Ingredient'}
+        </Typography>
+      </Box>
 
       {error && <Typography color="error">{error}</Typography>}
 
       {ingredient && (
         <Box>
-          <Typography variant="h5" sx={{ fontWeight: 'bold' }} gutterBottom>
-            {ingredient.name}
-          </Typography>
-
           {ingredient.brand && (
-            <Typography variant="subtitle1" color="text.secondary" gutterBottom>
+            <Typography variant="subtitle1" color="text.secondary" align="center" gutterBottom>
               {ingredient.brand}
             </Typography>
           )}
 
-          <Chip label={ingredient.status.replace('_', ' ')} sx={{ mb: 2 }} />
-
-          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, mb: 3 }}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 3, mb: 3 }}>
             <Box>
               <Typography variant="caption" color="text.secondary">Category</Typography>
               <Typography>{ingredient.category || '—'}</Typography>
@@ -87,14 +87,33 @@ export default function IngredientDetailPage() {
                   : '—'}
               </Typography>
             </Box>
+            <Box>
+              <Typography variant="caption" color="text.secondary">Status</Typography>
+              <Box>
+                <Chip label={ingredient.status.replace('_', ' ')} size="small" sx={{ mt: 0.5 }} />
+              </Box>
+            </Box>
           </Box>
 
-          <Button
-            variant="contained"
-            onClick={() => navigate(`/ingredients/${id}/edit`)}
-          >
-            Edit
-          </Button>
+          <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2 }}>
+            <Button
+              variant="contained"
+              size="small"
+              sx={{ width: 200 }}
+              onClick={() => navigate(`/ingredients/${id}/edit`)}
+            >
+              Edit
+            </Button>
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<ListAltIcon />}
+              sx={{ width: 200, whiteSpace: 'nowrap' }}
+              onClick={() => navigate('/ingredients')}
+            >
+              Back to Inventory
+            </Button>
+          </Box>
         </Box>
       )}
     </Container>
