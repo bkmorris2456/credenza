@@ -6,7 +6,11 @@ export interface Household {
   createdByUserId: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
+  /** Days before expiration an ingredient starts showing up in the expiry notification. Defaults to DEFAULT_EXPIRY_WARNING_DAYS when unset. */
+  expiryWarningDays?: number;
 }
+
+export const DEFAULT_EXPIRY_WARNING_DAYS = 3;
 
 export type HouseholdRole = 'owner' | 'admin' | 'member';
 
@@ -38,11 +42,15 @@ export interface Ingredient {
   brand: string;
   /** Null when no expiration date has been set. */
   expirationDate: Timestamp | null;
+  addedByUserId: string;
+  /** Short label (first name or email prefix) captured at creation time; never updated on edit. */
+  addedByName: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
 
 export interface RecipeIngredient {
+  /** Empty for a custom, freeform ingredient with no link to tracked inventory. */
   ingredientId: string;
   name: string;
   quantity: number;
@@ -56,6 +64,11 @@ export interface Recipe {
   servings: number;
   createdAt: Timestamp;
   ingredients: RecipeIngredient[];
+  /** Ordered list of step instructions, each rendered as Markdown. */
+  steps: string[];
+  writtenByUserId: string;
+  /** Short label (first name or email prefix) captured at creation time; never updated on edit. */
+  writtenByName: string;
   imageUrl?: string;
   /** Minutes */
   prepTime?: number;

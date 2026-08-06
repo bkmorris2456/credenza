@@ -16,7 +16,10 @@ import {
   updateIngredient,
 } from '../services/ingredientService';
 import { getCategories, addCategory, getUnits, addUnit } from '../services/lookupService';
+import { shortDisplayName } from '../services/authService';
+import { loadDraft, saveDraft, clearDraft } from '../services/draftStorage';
 import SelectWithAdd from '../components/ui/SelectWithAdd';
+import { useAuth } from '../contexts/AuthContext';
 import { useHousehold } from '../contexts/HouseholdContext';
 import type { Ingredient, IngredientStatus, Category, Unit } from '../types';
 
@@ -52,14 +55,24 @@ export default function IngredientFormPage() {
   const { id } = useParams<{ id: string }>();
   const isEdit = Boolean(id);
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { householdId } = useHousehold();
+  const draftKey = isEdit && id ? `credenza:ingredient-draft:${id}` : 'credenza:ingredient-draft:new';
 
-  const [form, setForm] = useState<FormState>(emptyForm);
+  const [form, setForm] = useState<FormState>(() =>
+    isEdit ? emptyForm : (loadDraft<FormState>(draftKey) ?? emptyForm)
+  );
   const [categories, setCategories] = useState<Category[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
   const [loading, setLoading] = useState(isEdit);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Carried through to the save payload but not user-editable: set once at
+  // creation from the signed-in user, preserved as-is on every later edit
+  // (the edit-load effect below overwrites this with the original creator).
+  const [addedBy, setAddedBy] = useState(() =>
+    user ? { userId: user.uid, name: shortDisplayName(user) } : { userId: '', name: '' }
+  );
 
   useEffect(() => {
     if (!householdId) return;
@@ -83,7 +96,7 @@ export default function IngredientFormPage() {
           setError('Ingredient not found.');
           return;
         }
-        setForm({
+        const baseline: FormState = {
           name: data.name,
           brand: data.brand,
           category: data.category,
@@ -93,7 +106,9 @@ export default function IngredientFormPage() {
           expirationDate: data.expirationDate
             ? data.expirationDate.toDate().toISOString().slice(0, 10)
             : '',
-        });
+        };
+        setForm(loadDraft<FormState>(draftKey) ?? baseline);
+        setAddedBy({ userId: data.addedByUserId ?? '', name: data.addedByName ?? 'Unknown' });
       } catch (err) {
         console.error('[IngredientFormPage] load failed:', err);
         setError('Failed to load ingredient details.');
@@ -101,7 +116,15 @@ export default function IngredientFormPage() {
         setLoading(false);
       }
     })();
-  }, [isEdit, id, householdId]);
+  }, [isEdit, id, householdId, draftKey]);
+
+  // Persist in-progress form input so a refresh doesn't lose it. Skipped
+  // while the edit-mode fetch is still in flight to avoid clobbering the
+  // saved draft with the transient empty/pre-fetch form state.
+  useEffect(() => {
+    if (loading) return;
+    saveDraft(draftKey, form);
+  }, [form, draftKey, loading]);
 
   const handleChange = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -149,14 +172,18 @@ export default function IngredientFormPage() {
       expirationDate: form.expirationDate
         ? Timestamp.fromDate(new Date(`${form.expirationDate}T00:00:00`))
         : null,
+      addedByUserId: addedBy.userId,
+      addedByName: addedBy.name,
     };
 
     try {
       if (isEdit && id) {
         await updateIngredient(householdId, id, payload);
+        clearDraft(draftKey);
         navigate(`/ingredients/${id}`);
       } else {
         const newId = await addIngredient(householdId, payload);
+        clearDraft(draftKey);
         navigate(`/ingredients/${newId}`);
       }
     } catch (err) {

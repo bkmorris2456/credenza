@@ -15,16 +15,34 @@ import Fab from '@mui/material/Fab';
 import Chip from '@mui/material/Chip';
 import AddIcon from '@mui/icons-material/Add';
 import CircularProgress from '@mui/material/CircularProgress';
+import FormGroup from '@mui/material/FormGroup';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import Checkbox from '@mui/material/Checkbox';
+import Radio from '@mui/material/Radio';
+import RadioGroup from '@mui/material/RadioGroup';
+import TextField from '@mui/material/TextField';
 import SearchBar from '../components/ui/SearchBar';
+import ColumnFilterMenu from '../components/ui/ColumnFilterMenu';
 import { getRecipes } from '../services/recipeService';
 import { getIngredients } from '../services/ingredientService';
 import { useHousehold } from '../contexts/HouseholdContext';
 import type { Recipe, Ingredient } from '../types';
 
+type AvailabilityFilter = 'all' | 'ready' | 'missing';
+
+/** Custom (untracked) ingredients have no ingredientId and can't be checked against stock, so they're skipped. */
 function canMake(recipe: Recipe, stock: Map<string, number>): boolean {
-  return recipe.ingredients.every(
-    (ri) => (stock.get(ri.ingredientId) ?? 0) >= ri.quantity
-  );
+  return recipe.ingredients
+    .filter((ri) => ri.ingredientId)
+    .every((ri) => (stock.get(ri.ingredientId) ?? 0) >= ri.quantity);
+}
+
+function formatTime(recipe: Recipe): string {
+  if (recipe.prepTime == null && recipe.cookTime == null) return '—';
+  const parts: string[] = [];
+  if (recipe.prepTime != null) parts.push(`${recipe.prepTime}m prep`);
+  if (recipe.cookTime != null) parts.push(`${recipe.cookTime}m cook`);
+  return parts.join(' / ');
 }
 
 export default function RecipeSearchPage() {
@@ -37,6 +55,11 @@ export default function RecipeSearchPage() {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [minServings, setMinServings] = useState('');
+  const [maxServings, setMaxServings] = useState('');
+  const [availabilityFilter, setAvailabilityFilter] = useState<AvailabilityFilter>('all');
+  const [writtenByFilter, setWrittenByFilter] = useState<string[]>([]);
 
   useEffect(() => {
     if (!householdId) return;
@@ -65,17 +88,38 @@ export default function RecipeSearchPage() {
     return [...available, ...unavailable];
   }, [recipes, stock]);
 
-  const filtered = useMemo(
-    () =>
-      sorted.filter(
-        (r) =>
-          r.name.toLowerCase().includes(search.toLowerCase()) ||
-          r.description.toLowerCase().includes(search.toLowerCase())
-      ),
-    [sorted, search]
+  const writtenByNames = useMemo(
+    () => Array.from(new Set(recipes.map((r) => r.writtenByName || 'Unknown'))).sort(),
+    [recipes]
   );
 
-  const paginated = filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+  const filtered = useMemo(() => {
+    const term = search.toLowerCase();
+    return sorted.filter((r) => {
+      if (
+        term &&
+        !(r.name.toLowerCase().includes(term) || r.description.toLowerCase().includes(term))
+      )
+        return false;
+      if (minServings !== '' && r.servings < Number(minServings)) return false;
+      if (maxServings !== '' && r.servings > Number(maxServings)) return false;
+      if (availabilityFilter !== 'all') {
+        const ready = canMake(r, stock);
+        if (availabilityFilter === 'ready' && !ready) return false;
+        if (availabilityFilter === 'missing' && ready) return false;
+      }
+      if (writtenByFilter.length && !writtenByFilter.includes(r.writtenByName || 'Unknown'))
+        return false;
+      return true;
+    });
+  }, [sorted, search, minServings, maxServings, availabilityFilter, writtenByFilter, stock]);
+
+  const toggleValue = <T,>(list: T[], value: T, checked: boolean) =>
+    checked ? [...list, value] : list.filter((v) => v !== value);
+
+  const maxPage = Math.max(0, Math.ceil(filtered.length / rowsPerPage) - 1);
+  const safePage = Math.min(page, maxPage);
+  const paginated = filtered.slice(safePage * rowsPerPage, safePage * rowsPerPage + rowsPerPage);
 
   if (loading) {
     return (
@@ -106,15 +150,82 @@ export default function RecipeSearchPage() {
           <TableHead>
             <TableRow>
               <TableCell>Name</TableCell>
-              <TableCell>Description</TableCell>
-              <TableCell>Servings</TableCell>
-              <TableCell>Available</TableCell>
+              <TableCell>Time</TableCell>
+              <TableCell>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  Servings
+                  <ColumnFilterMenu
+                    active={minServings !== '' || maxServings !== ''}
+                    onClear={() => { setMinServings(''); setMaxServings(''); }}
+                  >
+                    <TextField
+                      label="Min"
+                      type="number"
+                      size="small"
+                      value={minServings}
+                      onChange={(e) => setMinServings(e.target.value)}
+                    />
+                    <TextField
+                      label="Max"
+                      type="number"
+                      size="small"
+                      value={maxServings}
+                      onChange={(e) => setMaxServings(e.target.value)}
+                    />
+                  </ColumnFilterMenu>
+                </Box>
+              </TableCell>
+              <TableCell>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  Available
+                  <ColumnFilterMenu
+                    active={availabilityFilter !== 'all'}
+                    onClear={() => setAvailabilityFilter('all')}
+                  >
+                    <RadioGroup
+                      value={availabilityFilter}
+                      onChange={(e) => setAvailabilityFilter(e.target.value as AvailabilityFilter)}
+                    >
+                      <FormControlLabel value="all" control={<Radio size="small" />} label="All" />
+                      <FormControlLabel value="ready" control={<Radio size="small" />} label="Ready" />
+                      <FormControlLabel value="missing" control={<Radio size="small" />} label="Missing" />
+                    </RadioGroup>
+                  </ColumnFilterMenu>
+                </Box>
+              </TableCell>
+              <TableCell>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  Written By
+                  <ColumnFilterMenu
+                    active={writtenByFilter.length > 0}
+                    onClear={() => setWrittenByFilter([])}
+                  >
+                    <FormGroup>
+                      {writtenByNames.map((n) => (
+                        <FormControlLabel
+                          key={n}
+                          label={n}
+                          control={
+                            <Checkbox
+                              size="small"
+                              checked={writtenByFilter.includes(n)}
+                              onChange={(e) =>
+                                setWrittenByFilter((prev) => toggleValue(prev, n, e.target.checked))
+                              }
+                            />
+                          }
+                        />
+                      ))}
+                    </FormGroup>
+                  </ColumnFilterMenu>
+                </Box>
+              </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {paginated.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} align="center">
+                <TableCell colSpan={5} align="center">
                   No recipes found.
                 </TableCell>
               </TableRow>
@@ -129,7 +240,7 @@ export default function RecipeSearchPage() {
                     sx={{ cursor: 'pointer' }}
                   >
                     <TableCell>{recipe.name}</TableCell>
-                    <TableCell>{recipe.description}</TableCell>
+                    <TableCell>{formatTime(recipe)}</TableCell>
                     <TableCell>{recipe.servings}</TableCell>
                     <TableCell>
                       <Chip
@@ -138,6 +249,7 @@ export default function RecipeSearchPage() {
                         size="small"
                       />
                     </TableCell>
+                    <TableCell>{recipe.writtenByName || '—'}</TableCell>
                   </TableRow>
                 );
               })
@@ -147,7 +259,7 @@ export default function RecipeSearchPage() {
         <TablePagination
           component="div"
           count={filtered.length}
-          page={page}
+          page={safePage}
           rowsPerPage={rowsPerPage}
           rowsPerPageOptions={[5, 10, 25]}
           onPageChange={(_, p) => setPage(p)}

@@ -40,3 +40,9 @@ export async function logOut(): Promise<void> {
 export function onAuthChange(callback: (user: User | null) => void): () => void {
   return onAuthStateChanged(auth, callback);
 }
+
+/** First name/word from displayName, or the local part of the email, for compact "Added By" style labels. */
+export function shortDisplayName(user: User): string {
+  const source = user.displayName || user.email || 'Unknown';
+  return source.split(/[\s@]/)[0] || 'Unknown';
+}

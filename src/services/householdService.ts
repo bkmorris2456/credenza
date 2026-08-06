@@ -2,6 +2,7 @@ import {
   collection,
   doc,
   getDoc,
+  updateDoc,
   serverTimestamp,
   runTransaction,
 } from 'firebase/firestore';
@@ -28,6 +29,21 @@ export async function getHousehold(householdId: string): Promise<Household | nul
   }
 }
 
+export async function updateExpiryWarningDays(
+  householdId: string,
+  days: number
+): Promise<void> {
+  try {
+    await updateDoc(doc(db, 'households', householdId), {
+      expiryWarningDays: days,
+      updatedAt: serverTimestamp(),
+    });
+  } catch (err) {
+    console.error('[householdService] updateExpiryWarningDays:', err);
+    throw err;
+  }
+}
+
 /**
  * Loads the signed-in user's profile, bootstrapping both the profile
  * document and a starter household on first sign-in. Returns the id of
@@ -41,7 +57,9 @@ export async function getHousehold(householdId: string): Promise<Household | nul
  *
  * If activeHouseholdId is already set but its membership doc is missing
  * (e.g. left over from a pre-transaction race), the membership doc is
- * repaired in place rather than minting a second household.
+ * repaired in place rather than minting a second household. The household
+ * doc itself is repaired the same way, in case it predates the household
+ * doc being created alongside the membership doc.
  */
 export async function ensureHousehold(
   userId: string,
@@ -55,8 +73,23 @@ export async function ensureHousehold(
       const userSnap = await tx.get(userRef);
       const existingId = userSnap.data()?.activeHouseholdId as string | undefined;
       if (existingId) {
+        // Firestore transactions require all reads to happen before any
+        // writes, so both docs are read here before either is repaired.
+        const householdRef = doc(db, 'households', existingId);
         const memberRef = doc(db, 'households', existingId, 'members', userId);
-        const memberSnap = await tx.get(memberRef);
+        const [householdSnap, memberSnap] = await Promise.all([
+          tx.get(householdRef),
+          tx.get(memberRef),
+        ]);
+
+        if (!householdSnap.exists()) {
+          tx.set(householdRef, {
+            name: `${displayName}'s Kitchen`,
+            createdByUserId: userId,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          });
+        }
         if (!memberSnap.exists()) {
           tx.set(memberRef, {
             role: 'owner',

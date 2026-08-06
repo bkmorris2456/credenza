@@ -49,6 +49,7 @@ export default function ItemRow({ ingredient, onClick }: Props) {
           size="small"
         />
       </TableCell>
+      <TableCell>{ingredient.addedByName || '—'}</TableCell>
     </TableRow>
   );
 }

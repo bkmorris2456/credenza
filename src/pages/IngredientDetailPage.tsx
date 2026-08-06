@@ -93,6 +93,10 @@ export default function IngredientDetailPage() {
                 <Chip label={ingredient.status.replace('_', ' ')} size="small" sx={{ mt: 0.5 }} />
               </Box>
             </Box>
+            <Box>
+              <Typography variant="caption" color="text.secondary">Added By</Typography>
+              <Typography>{ingredient.addedByName || '—'}</Typography>
+            </Box>
           </Box>
 
           <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2 }}>
