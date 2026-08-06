@@ -155,14 +155,6 @@ Credenza is a PWA, so no App Store is required:
 
 Native App Store distribution (via a wrapper like Capacitor) and iOS push notifications are bigger, separate efforts not currently set up — see the Roadmap below.
 
-## Roadmap
-
-Tracked day-to-day in [`docs/TODO.md`](docs/TODO.md); known larger gaps not yet built:
-- A real household management UI (invite members, switch households, edit roles) — today every new user silently gets their own solo starter household.
-- Writing to the `userLogs` / `recipeLogs` / `ingredientLogs` collections (schema exists, nothing populates them yet).
-- A "Use this recipe" action that decrements ingredient quantities when a recipe is cooked, per the design decision that inventory updates happen immediately once a recipe is confirmed.
-- Low-stock/expiry push notifications via Firebase Cloud Messaging (the SDK is initialized in `firebase.ts` but not yet wired to request permission, register a token, or send anything — today's expiry/low-stock alerts are in-app banners only).
-
 ## Further reading
 
 - [`docs/SPEC.md`](docs/SPEC.md) — original product spec: goals, user stories, functional/non-functional requirements
