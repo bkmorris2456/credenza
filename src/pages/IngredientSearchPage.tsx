@@ -14,6 +14,8 @@ import Paper from '@mui/material/Paper';
 import Fab from '@mui/material/Fab';
 import AddIcon from '@mui/icons-material/Add';
 import SettingsIcon from '@mui/icons-material/Settings';
+import ChecklistIcon from '@mui/icons-material/Checklist';
+import DeleteIcon from '@mui/icons-material/Delete';
 import IconButton from '@mui/material/IconButton';
 import CircularProgress from '@mui/material/CircularProgress';
 import FormGroup from '@mui/material/FormGroup';
@@ -22,13 +24,19 @@ import Checkbox from '@mui/material/Checkbox';
 import Radio from '@mui/material/Radio';
 import RadioGroup from '@mui/material/RadioGroup';
 import TextField from '@mui/material/TextField';
+import Button from '@mui/material/Button';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogActions from '@mui/material/DialogActions';
 import SearchBar from '../components/ui/SearchBar';
 import LowStockToast from '../components/ui/LowStockToast';
 import ExpiryToast from '../components/ui/ExpiryToast';
 import NotificationSettingsDialog from '../components/ui/NotificationSettingsDialog';
 import ItemRow from '../components/ui/ItemRow';
 import ColumnFilterMenu from '../components/ui/ColumnFilterMenu';
-import { getIngredients } from '../services/ingredientService';
+import { getIngredients, deleteIngredients } from '../services/ingredientService';
 import { useHousehold } from '../contexts/HouseholdContext';
 import { DEFAULT_EXPIRY_WARNING_DAYS } from '../types';
 import type { Ingredient } from '../types';
@@ -54,6 +62,11 @@ export default function IngredientSearchPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const [brandFilter, setBrandFilter] = useState<string[]>([]);
   const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
@@ -154,6 +167,53 @@ export default function IngredientSearchPage() {
   const toggleValue = <T,>(list: T[], value: T, checked: boolean) =>
     checked ? [...list, value] : list.filter((v) => v !== value);
 
+  const toggleSelectMode = () => {
+    setSelectMode((prev) => !prev);
+    setSelectedIds(new Set());
+  };
+
+  const toggleSelected = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const pageIds = paginated.map((i) => i.id);
+  const allPageSelected = pageIds.length > 0 && pageIds.every((id) => selectedIds.has(id));
+  const somePageSelected = pageIds.some((id) => selectedIds.has(id));
+
+  const toggleSelectAllOnPage = () => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (allPageSelected) {
+        pageIds.forEach((id) => next.delete(id));
+      } else {
+        pageIds.forEach((id) => next.add(id));
+      }
+      return next;
+    });
+  };
+
+  const handleDeleteSelected = async () => {
+    if (!householdId || selectedIds.size === 0) return;
+    setDeleting(true);
+    try {
+      await deleteIngredients(householdId, Array.from(selectedIds));
+      setIngredients((prev) => prev.filter((i) => !selectedIds.has(i.id)));
+      setSelectedIds(new Set());
+      setDeleteDialogOpen(false);
+      setSelectMode(false);
+    } catch (err) {
+      console.error('[IngredientSearchPage] deleteIngredients failed:', err);
+      setError('Failed to delete selected ingredients. Please try again.');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}>
@@ -168,10 +228,37 @@ export default function IngredientSearchPage() {
         <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
           Kitchen Inventory
         </Typography>
-        <IconButton aria-label="Notification settings" onClick={() => setSettingsOpen(true)}>
-          <SettingsIcon />
-        </IconButton>
+        <Box>
+          <IconButton
+            aria-label={selectMode ? 'Exit select mode' : 'Select ingredients'}
+            color={selectMode ? 'primary' : 'default'}
+            onClick={toggleSelectMode}
+          >
+            <ChecklistIcon />
+          </IconButton>
+          <IconButton aria-label="Notification settings" onClick={() => setSettingsOpen(true)}>
+            <SettingsIcon />
+          </IconButton>
+        </Box>
       </Box>
+
+      {selectMode && (
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+          <Typography variant="body2" color="text.secondary">
+            {selectedIds.size} selected
+          </Typography>
+          <Button
+            variant="outlined"
+            color="error"
+            size="small"
+            startIcon={<DeleteIcon />}
+            disabled={selectedIds.size === 0}
+            onClick={() => setDeleteDialogOpen(true)}
+          >
+            Delete
+          </Button>
+        </Box>
+      )}
 
       <LowStockToast lowCount={lowCount} outCount={outCount} />
       <ExpiryToast expiredCount={expiredCount} expiringCount={expiringCount} warningDays={warningDays} />
@@ -197,6 +284,15 @@ export default function IngredientSearchPage() {
         <Table size="small">
           <TableHead>
             <TableRow>
+              {selectMode && (
+                <TableCell padding="checkbox">
+                  <Checkbox
+                    indeterminate={somePageSelected && !allPageSelected}
+                    checked={allPageSelected}
+                    onChange={toggleSelectAllOnPage}
+                  />
+                </TableCell>
+              )}
               <TableCell>Name</TableCell>
               <TableCell>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
@@ -339,7 +435,7 @@ export default function IngredientSearchPage() {
           <TableBody>
             {paginated.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} align="center">
+                <TableCell colSpan={selectMode ? 8 : 7} align="center">
                   No ingredients found.
                 </TableCell>
               </TableRow>
@@ -349,6 +445,9 @@ export default function IngredientSearchPage() {
                   key={ingredient.id}
                   ingredient={ingredient}
                   onClick={(id) => navigate(`/ingredients/${id}`)}
+                  selectable={selectMode}
+                  selected={selectedIds.has(ingredient.id)}
+                  onToggleSelect={toggleSelected}
                 />
               ))
             )}
@@ -373,6 +472,23 @@ export default function IngredientSearchPage() {
       >
         <AddIcon />
       </Fab>
+
+      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+        <DialogTitle>Delete {selectedIds.size} ingredient{selectedIds.size === 1 ? '' : 's'}?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogOpen(false)} disabled={deleting}>
+            Cancel
+          </Button>
+          <Button onClick={handleDeleteSelected} color="error" disabled={deleting}>
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 }

@@ -1,5 +1,6 @@
 import TableRow from '@mui/material/TableRow';
 import TableCell from '@mui/material/TableCell';
+import Checkbox from '@mui/material/Checkbox';
 import Chip from '@mui/material/Chip';
 import type { Ingredient } from '../../types';
 
@@ -20,9 +21,12 @@ const statusLabel: Record<Ingredient['status'], string> = {
 interface Props {
   ingredient: Ingredient;
   onClick: (id: string) => void;
+  selectable?: boolean;
+  selected?: boolean;
+  onToggleSelect?: (id: string) => void;
 }
 
-export default function ItemRow({ ingredient, onClick }: Props) {
+export default function ItemRow({ ingredient, onClick, selectable, selected, onToggleSelect }: Props) {
   const isExpired = Boolean(
     ingredient.expirationDate && ingredient.expirationDate.toDate() < new Date()
   );
@@ -30,9 +34,19 @@ export default function ItemRow({ ingredient, onClick }: Props) {
   return (
     <TableRow
       hover
-      onClick={() => onClick(ingredient.id)}
+      selected={selected}
+      onClick={() => (selectable ? onToggleSelect?.(ingredient.id) : onClick(ingredient.id))}
       sx={{ cursor: 'pointer' }}
     >
+      {selectable && (
+        <TableCell padding="checkbox">
+          <Checkbox
+            checked={Boolean(selected)}
+            onClick={(e) => e.stopPropagation()}
+            onChange={() => onToggleSelect?.(ingredient.id)}
+          />
+        </TableCell>
+      )}
       <TableCell>{ingredient.name}</TableCell>
       <TableCell>{ingredient.brand}</TableCell>
       <TableCell>{ingredient.category}</TableCell>

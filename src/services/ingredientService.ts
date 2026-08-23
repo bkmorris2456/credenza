@@ -6,6 +6,7 @@ import {
   addDoc,
   updateDoc,
   deleteDoc,
+  writeBatch,
   query,
   orderBy,
   serverTimestamp,
@@ -80,6 +81,17 @@ export async function deleteIngredient(householdId: string, id: string): Promise
     await deleteDoc(ingredientDoc(householdId, id));
   } catch (err) {
     console.error('[ingredientService] deleteIngredient:', err);
+    throw err;
+  }
+}
+
+export async function deleteIngredients(householdId: string, ids: string[]): Promise<void> {
+  try {
+    const batch = writeBatch(db);
+    ids.forEach((id) => batch.delete(ingredientDoc(householdId, id)));
+    await batch.commit();
+  } catch (err) {
+    console.error('[ingredientService] deleteIngredients:', err);
     throw err;
   }
 }
