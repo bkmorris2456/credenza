@@ -19,7 +19,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import { getRecipe, addRecipe, updateRecipe } from '../services/recipeService';
-import { getIngredients } from '../services/ingredientService';
+import { subscribeIngredients } from '../services/ingredientService';
 import { shortDisplayName } from '../services/authService';
 import { loadDraft, saveDraft, clearDraft } from '../services/draftStorage';
 import { useAuth } from '../contexts/AuthContext';
@@ -77,13 +77,18 @@ export default function RecipeFormPage() {
 
   useEffect(() => {
     if (!householdId) return;
+    return subscribeIngredients(
+      householdId,
+      (data) => setAvailableIngredients(data),
+      (err) => console.error('[RecipeFormPage] load ingredients failed:', err)
+    );
+  }, [householdId]);
+
+  useEffect(() => {
+    if (!householdId) return;
     (async () => {
       try {
-        const [ingredients, recipe] = await Promise.all([
-          getIngredients(householdId),
-          isEdit && id ? getRecipe(householdId, id) : Promise.resolve<Recipe | null>(null),
-        ]);
-        setAvailableIngredients(ingredients);
+        const recipe = isEdit && id ? await getRecipe(householdId, id) : null;
 
         if (isEdit) {
           if (!recipe) {

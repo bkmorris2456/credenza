@@ -1,5 +1,9 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
+import {
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+} from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { getMessaging, isSupported } from 'firebase/messaging';
 
@@ -24,7 +28,12 @@ if (missingKeys.length > 0) {
 
 const app = initializeApp(firebaseConfig);
 
-export const db = getFirestore(app);
+// Persistent (IndexedDB-backed) cache so each device keeps its own copy of
+// Firestore data between sessions instead of re-fetching from the network
+// every load; multi-tab support in case Credenza is open in two tabs at once.
+export const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+});
 export const auth = getAuth(app);
 
 // Messaging is only available in contexts that support service workers

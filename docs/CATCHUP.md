@@ -1,5 +1,43 @@
 # Catchup Log
 
+## 2026-09-13 — Household round-trip, Households page, nav wiring (TODO Sections B & C finished)
+
+Finished the rest of `docs/TODO.md`: the household network round-trip cut, and the Households page UI + nav wiring.
+
+- `ensureHousehold` now returns household data directly, so `HouseholdContext` no longer does a second `getHousehold` call after every login.
+- New `HouseholdsPage` (route `/households`, nav entry between Recipes and... well, after Recipes) — switch between households you're in, create a new one (get a shareable 8-digit code back), or join one by code with the choice to copy your current ingredients/recipes over or leave them in Personal.
+- `HouseholdContext` gained `switchHousehold()` so the UI updates immediately after create/join/switch, no reload needed.
+- While building this I caught a real bug in my own first draft: `handleJoin` wasn't syncing local context state after joining, which would've left the app showing stale household data post-join. Fixed before it shipped.
+- `npm run lint` and `npm run build` both pass. **Nothing has been manually tested in a browser/phone yet.**
+- **`firestore.rules` still isn't deployed** (needs `firebase deploy --only firestore:rules`) — join-by-code won't actually work end-to-end until that's pushed. Same for the app itself needing `npm run deploy` to reach your phone.
+- `docs/TODO.md` is now empty — everything is in `docs/COMPLETED.md`.
+- Next: you wanted to walk through what's been built together — worth deciding on deploying the rules + app for a real test pass, and covering the two open notes from earlier (missing PWA icons, and the SPEC's conflict-notification requirement which still isn't implemented).
+
+## 2026-09-13 — Household data model & service layer (TODO Section C, item 1)
+
+Translated `docs/SUGGESTIONS.md`'s "Household Implementations" notes into TODO Section C (3 items) and implemented the first: the data model, Firestore rules, and service functions needed for multi-household support (create/join-by-code/switch), with no UI yet.
+
+- `Household` gained an optional `joinCode`; new `UserHouseholdMembership` type backs a `users/{userId}/households/{householdId}` index subcollection (a user can now belong to more than one household).
+- `firestore.rules`: new `users/{userId}/households` subcollection rule, new `joinCodes/{code}` lookup collection (get/create only — deliberately not listable, so codes can't be scanned/enumerated), and a tightened `members` create rule so only a household's actual creator can self-assign `role: 'owner'` (closes a privilege-escalation gap that the new shareable join codes would otherwise open).
+- `ensureHousehold`'s auto-created starter household is now named `Personal` (was `"<name>'s Kitchen"`), matching the spec's "Default is 'Personal'", and backfills the new household-index entry for existing accounts.
+- New `householdService` functions: `createHousehold` (generates a unique 8-digit join code, atomic batch write), `joinHouseholdByCode` (resolves code → household, self-joins as `member`, optionally copies — not moves — the user's ingredients/recipes from their prior active household into the new one, batched to respect Firestore's 500-write limit), `listUserHouseholds`, `switchActiveHousehold`.
+- Verified with `npm run lint` (clean) and `npm run build` (succeeds).
+- **`firestore.rules` has NOT been deployed** — changes only take effect via `firebase deploy --only firestore:rules`, which I'm holding off on since it's a live change to production security rules. Flag when you want that pushed.
+- Logged in `docs/COMPLETED.md`. `docs/TODO.md` Section C now has items 2 (Households page UI) and 3 (nav wiring) left.
+- Next: build the Households page (create/join forms, switcher, migrate-data confirmation dialog), then wire it into `BottomNav`/routing.
+
+## 2026-09-13 — Local cache per device (TODO Section A)
+
+Implemented TODO Section A: give each device its own persistent Firestore cache and move list reads to live listeners so pages load fast on repeat visits.
+
+- `firebase.ts` now calls `initializeFirestore` with `persistentLocalCache` (+ `persistentMultipleTabManager`) instead of plain `getFirestore` — each device keeps an IndexedDB-backed copy of Firestore data between sessions.
+- Added `subscribeIngredients`/`subscribeRecipes`/`subscribeCategories`/`subscribeUnits` (`onSnapshot`-based) alongside the existing one-shot `getX` functions, and switched all list-consuming pages (`IngredientSearchPage`, `RecipeSearchPage`, `RecipeDetailPage`, `RecipeFormPage`, `IngredientFormPage`) to use them, with proper unsubscribe-on-unmount cleanup.
+- Confirmed TODO Section B item 2 (parallelize independent fetches) was already done throughout the codebase via `Promise.all` — no changes needed there.
+- Verified with `npm run lint` (clean) and `npm run build` (succeeds).
+- **Not yet manually tested in a browser.** Per the testing policy, before I do that: what's worth checking is (1) ingredient/recipe tables still load and update correctly, (2) editing an ingredient/recipe from another tab/device reflects live in the search pages, (3) repeat page visits feel noticeably faster than before, (4) offline behavior — data should still display from cache with network off. Let me know if you want to test this yourself or have me drive it.
+- Logged in `docs/COMPLETED.md`. `docs/TODO.md` now only has Section B (household round-trip + retrieval algorithm notes) left, with item 2 struck through as already satisfied.
+- Next: Section B item 1 (collapse the `ensureHousehold` + `getHousehold` double round-trip), pending your go-ahead — then the Household functionality spec in `docs/SUGGESTIONS.md`.
+
 ## 2026-08-22 — Multi-select delete for ingredients and recipes
 
 Implemented the TODO item: "select multiple ingredients/items or recipes, and have the ability to delete them."

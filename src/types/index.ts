@@ -8,6 +8,15 @@ export interface Household {
   updatedAt: Timestamp;
   /** Days before expiration an ingredient starts showing up in the expiry notification. Defaults to DEFAULT_EXPIRY_WARNING_DAYS when unset. */
   expiryWarningDays?: number;
+  /** 8-digit code others use to join this household. Unset on auto-created solo "Personal" households, which aren't shareable. */
+  joinCode?: string;
+}
+
+/** A user's own `users/{userId}/households/{householdId}` index entry — which households they belong to. */
+export interface UserHouseholdMembership {
+  id: string;
+  name: string;
+  joinedAt: Timestamp;
 }
 
 export const DEFAULT_EXPIRY_WARNING_DAYS = 3;

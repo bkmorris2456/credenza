@@ -9,6 +9,7 @@ import {
   writeBatch,
   query,
   orderBy,
+  onSnapshot,
   serverTimestamp,
 } from 'firebase/firestore';
 import { db } from './firebase';
@@ -28,6 +29,22 @@ export async function getRecipes(householdId: string): Promise<Recipe[]> {
     console.error('[recipeService] getRecipes:', err);
     throw err;
   }
+}
+
+/** Live-updating equivalent of getRecipes; see subscribeIngredients for why. */
+export function subscribeRecipes(
+  householdId: string,
+  onData: (recipes: Recipe[]) => void,
+  onError: (err: unknown) => void
+): () => void {
+  return onSnapshot(
+    query(recipesCol(householdId), orderBy('name')),
+    (snap) => onData(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Recipe))),
+    (err) => {
+      console.error('[recipeService] subscribeRecipes:', err);
+      onError(err);
+    }
+  );
 }
 
 export async function getRecipe(householdId: string, id: string): Promise<Recipe | null> {

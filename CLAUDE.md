@@ -88,3 +88,7 @@ docs/TODO.md is your go-to on where to go to understand what features and fixes 
 ### Regarding Testing
 
 Before you ask for permissions on testing, tell me what you are testing, and I will decide whether I will test it myself or I will let you test it
+
+### COMPLETED.md
+
+Any completed items from TODO.md should be recorded here in COMPLETED, to have some record of what items have been assigned and accomplished

@@ -36,7 +36,7 @@ import ExpiryToast from '../components/ui/ExpiryToast';
 import NotificationSettingsDialog from '../components/ui/NotificationSettingsDialog';
 import ItemRow from '../components/ui/ItemRow';
 import ColumnFilterMenu from '../components/ui/ColumnFilterMenu';
-import { getIngredients, deleteIngredients } from '../services/ingredientService';
+import { subscribeIngredients, deleteIngredients } from '../services/ingredientService';
 import { useHousehold } from '../contexts/HouseholdContext';
 import { DEFAULT_EXPIRY_WARNING_DAYS } from '../types';
 import type { Ingredient } from '../types';
@@ -78,16 +78,18 @@ export default function IngredientSearchPage() {
 
   useEffect(() => {
     if (!householdId) return;
-    (async () => {
-      try {
-        setIngredients(await getIngredients(householdId));
-      } catch (err) {
-        console.error('[IngredientSearchPage] load failed:', err);
+    const unsubscribe = subscribeIngredients(
+      householdId,
+      (data) => {
+        setIngredients(data);
+        setLoading(false);
+      },
+      () => {
         setError('Failed to load ingredients. Please try again.');
-      } finally {
         setLoading(false);
       }
-    })();
+    );
+    return unsubscribe;
   }, [householdId]);
 
   const brands = useMemo(

@@ -15,7 +15,12 @@ import {
   addIngredient,
   updateIngredient,
 } from '../services/ingredientService';
-import { getCategories, addCategory, getUnits, addUnit } from '../services/lookupService';
+import {
+  subscribeCategories,
+  addCategory,
+  subscribeUnits,
+  addUnit,
+} from '../services/lookupService';
 import { shortDisplayName } from '../services/authService';
 import { loadDraft, saveDraft, clearDraft } from '../services/draftStorage';
 import SelectWithAdd from '../components/ui/SelectWithAdd';
@@ -76,15 +81,16 @@ export default function IngredientFormPage() {
 
   useEffect(() => {
     if (!householdId) return;
-    (async () => {
-      try {
-        const [cats, us] = await Promise.all([getCategories(householdId), getUnits(householdId)]);
-        setCategories(cats);
-        setUnits(us);
-      } catch (err) {
-        console.error('[IngredientFormPage] load lookups failed:', err);
-      }
-    })();
+    const unsubscribeCategories = subscribeCategories(householdId, setCategories, (err) =>
+      console.error('[IngredientFormPage] load categories failed:', err)
+    );
+    const unsubscribeUnits = subscribeUnits(householdId, setUnits, (err) =>
+      console.error('[IngredientFormPage] load units failed:', err)
+    );
+    return () => {
+      unsubscribeCategories();
+      unsubscribeUnits();
+    };
   }, [householdId]);
 
   useEffect(() => {

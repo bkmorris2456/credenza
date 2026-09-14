@@ -32,8 +32,8 @@ import DialogContentText from '@mui/material/DialogContentText';
 import DialogActions from '@mui/material/DialogActions';
 import SearchBar from '../components/ui/SearchBar';
 import ColumnFilterMenu from '../components/ui/ColumnFilterMenu';
-import { getRecipes, deleteRecipes } from '../services/recipeService';
-import { getIngredients } from '../services/ingredientService';
+import { subscribeRecipes, deleteRecipes } from '../services/recipeService';
+import { subscribeIngredients } from '../services/ingredientService';
 import { useHousehold } from '../contexts/HouseholdContext';
 import type { Recipe, Ingredient } from '../types';
 
@@ -77,23 +77,47 @@ export default function RecipeSearchPage() {
 
   useEffect(() => {
     if (!householdId) return;
-    (async () => {
-      try {
-        const [fetchedRecipes, ingredients] = await Promise.all([
-          getRecipes(householdId),
-          getIngredients(householdId),
-        ]);
-        setRecipes(fetchedRecipes);
-        setStock(
-          new Map((ingredients as Ingredient[]).map((i) => [i.id, i.quantity]))
-        );
-      } catch (err) {
-        console.error('[RecipeSearchPage] load failed:', err);
-        setError('Failed to load recipes. Please try again.');
-      } finally {
-        setLoading(false);
+
+    let recipesLoaded = false;
+    let stockLoaded = false;
+    const checkLoaded = () => {
+      if (recipesLoaded && stockLoaded) setLoading(false);
+    };
+    const handleError = () => {
+      setError('Failed to load recipes. Please try again.');
+    };
+
+    const unsubscribeRecipes = subscribeRecipes(
+      householdId,
+      (data) => {
+        setRecipes(data);
+        recipesLoaded = true;
+        checkLoaded();
+      },
+      () => {
+        handleError();
+        recipesLoaded = true;
+        checkLoaded();
       }
-    })();
+    );
+    const unsubscribeIngredients = subscribeIngredients(
+      householdId,
+      (data: Ingredient[]) => {
+        setStock(new Map(data.map((i) => [i.id, i.quantity])));
+        stockLoaded = true;
+        checkLoaded();
+      },
+      () => {
+        handleError();
+        stockLoaded = true;
+        checkLoaded();
+      }
+    );
+
+    return () => {
+      unsubscribeRecipes();
+      unsubscribeIngredients();
+    };
   }, [householdId]);
 
   const sorted = useMemo(() => {

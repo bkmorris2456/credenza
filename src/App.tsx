@@ -15,6 +15,7 @@ import IngredientFormPage from './pages/IngredientFormPage';
 import RecipeSearchPage from './pages/RecipeSearchPage';
 import RecipeDetailPage from './pages/RecipeDetailPage';
 import RecipeFormPage from './pages/RecipeFormPage';
+import HouseholdsPage from './pages/HouseholdsPage';
 
 const theme = createTheme({
   colorSchemes: { dark: true },
@@ -73,6 +74,7 @@ export default function App() {
                   <Route path="/recipes/new" element={<RecipeFormPage />} />
                   <Route path="/recipes/:id/edit" element={<RecipeFormPage />} />
                   <Route path="/recipes/:id" element={<RecipeDetailPage />} />
+                  <Route path="/households" element={<HouseholdsPage />} />
                 </Route>
               </Routes>
             </BrowserRouter>

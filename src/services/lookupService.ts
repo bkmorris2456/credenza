@@ -1,4 +1,13 @@
-import { collection, doc, getDocs, setDoc, query, orderBy, serverTimestamp } from 'firebase/firestore';
+import {
+  collection,
+  doc,
+  getDocs,
+  setDoc,
+  query,
+  orderBy,
+  onSnapshot,
+  serverTimestamp,
+} from 'firebase/firestore';
 import { db } from './firebase';
 import type { Category, Unit } from '../types';
 
@@ -13,6 +22,23 @@ async function getLookup<T extends { id: string; name: string }>(
 ): Promise<T[]> {
   const snap = await getDocs(query(lookupCol(householdId, kind), orderBy('name')));
   return snap.docs.map((d) => ({ id: d.id, ...d.data() } as T));
+}
+
+/** Live-updating equivalent of getLookup; see subscribeIngredients for why. */
+function subscribeLookup<T extends { id: string; name: string }>(
+  householdId: string,
+  kind: LookupKind,
+  onData: (items: T[]) => void,
+  onError: (err: unknown) => void
+): () => void {
+  return onSnapshot(
+    query(lookupCol(householdId, kind), orderBy('name')),
+    (snap) => onData(snap.docs.map((d) => ({ id: d.id, ...d.data() } as T))),
+    (err) => {
+      console.error(`[lookupService] subscribe${kind}:`, err);
+      onError(err);
+    }
+  );
 }
 
 /** Doc id === trimmed name, so re-adding an existing name is a harmless no-op. */
@@ -39,6 +65,14 @@ export async function getCategories(householdId: string): Promise<Category[]> {
   }
 }
 
+export function subscribeCategories(
+  householdId: string,
+  onData: (categories: Category[]) => void,
+  onError: (err: unknown) => void
+): () => void {
+  return subscribeLookup<Category>(householdId, 'categories', onData, onError);
+}
+
 export async function addCategory(householdId: string, name: string): Promise<Category> {
   try {
     return await addLookup<Category>(householdId, 'categories', name);
@@ -55,6 +89,14 @@ export async function getUnits(householdId: string): Promise<Unit[]> {
     console.error('[lookupService] getUnits:', err);
     throw err;
   }
+}
+
+export function subscribeUnits(
+  householdId: string,
+  onData: (units: Unit[]) => void,
+  onError: (err: unknown) => void
+): () => void {
+  return subscribeLookup<Unit>(householdId, 'units', onData, onError);
 }
 
 export async function addUnit(householdId: string, name: string): Promise<Unit> {

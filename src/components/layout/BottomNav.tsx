@@ -4,8 +4,9 @@ import BottomNavigationAction from '@mui/material/BottomNavigationAction';
 import Paper from '@mui/material/Paper';
 import KitchenIcon from '@mui/icons-material/Kitchen';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
+import GroupsIcon from '@mui/icons-material/Groups';
 
-const routes = ['/ingredients', '/recipes'];
+const routes = ['/ingredients', '/recipes', '/households'];
 
 export default function BottomNav() {
   const location = useLocation();
@@ -22,6 +23,7 @@ export default function BottomNav() {
       >
         <BottomNavigationAction label="Ingredients" icon={<KitchenIcon />} />
         <BottomNavigationAction label="Recipes" icon={<MenuBookIcon />} />
+        <BottomNavigationAction label="Households" icon={<GroupsIcon />} />
       </BottomNavigation>
     </Paper>
   );

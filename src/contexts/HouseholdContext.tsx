@@ -1,6 +1,11 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { useAuth } from './AuthContext';
-import { ensureHousehold, getHousehold, updateExpiryWarningDays } from '../services/householdService';
+import {
+  ensureHousehold,
+  getHousehold,
+  switchActiveHousehold,
+  updateExpiryWarningDays,
+} from '../services/householdService';
 import type { Household } from '../types';
 
 interface HouseholdContextValue {
@@ -9,6 +14,8 @@ interface HouseholdContextValue {
   loading: boolean;
   error: string | null;
   setExpiryWarningDays: (days: number) => Promise<void>;
+  /** Makes householdId the active household app-wide (after a create/join/switch action elsewhere). */
+  switchHousehold: (householdId: string) => Promise<void>;
 }
 
 const HouseholdContext = createContext<HouseholdContextValue>({
@@ -17,6 +24,7 @@ const HouseholdContext = createContext<HouseholdContextValue>({
   loading: true,
   error: null,
   setExpiryWarningDays: async () => {},
+  switchHousehold: async () => {},
 });
 
 export function HouseholdProvider({ children }: { children: ReactNode }) {
@@ -42,14 +50,14 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
       setError(null);
 
       try {
-        const id = await ensureHousehold(
+        const { householdId, household } = await ensureHousehold(
           user.uid,
           user.email ?? '',
           user.displayName ?? user.email ?? 'My'
         );
         if (cancelled) return;
-        setHouseholdId(id);
-        setHousehold(await getHousehold(id));
+        setHouseholdId(householdId);
+        setHousehold(household);
       } catch (err) {
         console.error('[HouseholdContext] ensureHousehold failed:', err);
         if (!cancelled) setError('Failed to load your household. Please try again.');
@@ -69,9 +77,17 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
     setHousehold((prev) => (prev ? { ...prev, expiryWarningDays: days } : prev));
   };
 
+  const switchHousehold = async (id: string) => {
+    if (!user) return;
+    await switchActiveHousehold(user.uid, id);
+    const data = await getHousehold(id);
+    setHouseholdId(id);
+    setHousehold(data);
+  };
+
   return (
     <HouseholdContext.Provider
-      value={{ householdId, household, loading, error, setExpiryWarningDays }}
+      value={{ householdId, household, loading, error, setExpiryWarningDays, switchHousehold }}
     >
       {children}
     </HouseholdContext.Provider>

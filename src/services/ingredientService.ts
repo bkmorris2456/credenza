@@ -9,6 +9,7 @@ import {
   writeBatch,
   query,
   orderBy,
+  onSnapshot,
   serverTimestamp,
 } from 'firebase/firestore';
 import { db } from './firebase';
@@ -28,6 +29,27 @@ export async function getIngredients(householdId: string): Promise<Ingredient[]>
     console.error('[ingredientService] getIngredients:', err);
     throw err;
   }
+}
+
+/**
+ * Live-updating equivalent of getIngredients. Paints instantly from the
+ * device's local Firestore cache (if present) and again whenever server
+ * data changes, instead of waiting on a network round trip every load.
+ * Returns an unsubscribe function.
+ */
+export function subscribeIngredients(
+  householdId: string,
+  onData: (ingredients: Ingredient[]) => void,
+  onError: (err: unknown) => void
+): () => void {
+  return onSnapshot(
+    query(ingredientsCol(householdId), orderBy('name')),
+    (snap) => onData(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Ingredient))),
+    (err) => {
+      console.error('[ingredientService] subscribeIngredients:', err);
+      onError(err);
+    }
+  );
 }
 
 export async function getIngredient(

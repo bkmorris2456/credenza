@@ -14,7 +14,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import Divider from '@mui/material/Divider';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { getRecipe } from '../services/recipeService';
-import { getIngredients } from '../services/ingredientService';
+import { subscribeIngredients } from '../services/ingredientService';
 import { useHousehold } from '../contexts/HouseholdContext';
 import type { Ingredient, Recipe } from '../types';
 
@@ -29,22 +29,46 @@ export default function RecipeDetailPage() {
 
   useEffect(() => {
     if (!id || !householdId) return;
+    let cancelled = false;
+    let recipeLoaded = false;
+    let stockLoaded = false;
+    const checkLoaded = () => {
+      if (recipeLoaded && stockLoaded && !cancelled) setLoading(false);
+    };
+
     (async () => {
       try {
-        const [data, ingredients] = await Promise.all([
-          getRecipe(householdId, id),
-          getIngredients(householdId),
-        ]);
+        const data = await getRecipe(householdId, id);
+        if (cancelled) return;
         if (!data) setError('Recipe not found.');
         else setRecipe(data);
-        setStock(new Map((ingredients as Ingredient[]).map((i) => [i.id, i.quantity])));
       } catch (err) {
         console.error('[RecipeDetailPage] load failed:', err);
-        setError('Failed to load recipe details.');
+        if (!cancelled) setError('Failed to load recipe details.');
       } finally {
-        setLoading(false);
+        recipeLoaded = true;
+        checkLoaded();
       }
     })();
+
+    const unsubscribe = subscribeIngredients(
+      householdId,
+      (data: Ingredient[]) => {
+        setStock(new Map(data.map((i) => [i.id, i.quantity])));
+        stockLoaded = true;
+        checkLoaded();
+      },
+      () => {
+        setError('Failed to load recipe details.');
+        stockLoaded = true;
+        checkLoaded();
+      }
+    );
+
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
   }, [id, householdId]);
 
   if (loading) {

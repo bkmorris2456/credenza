@@ -13,6 +13,22 @@ service cloud.firestore {
 
     match /users/{userId} {
       allow read, write: if isSignedIn() && request.auth.uid == userId;
+
+      // Index of which households this user belongs to (a user can now be
+      // in more than one: their Personal household plus any joined ones).
+      match /households/{householdId} {
+        allow read, write: if isSignedIn() && request.auth.uid == userId;
+      }
+    }
+
+    // Join-code -> householdId lookup, so a non-member can resolve a shared
+    // 8-digit code to a household id via a single get(). Deliberately not
+    // queryable/listable against `households` directly, so codes can't be
+    // enumerated by scanning.
+    match /joinCodes/{code} {
+      allow get: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update, delete: if false;
     }
 
     match /households/{householdId} {
@@ -26,9 +42,16 @@ service cloud.firestore {
         // it checks exists() on this same doc). This lets client code
         // detect and repair a missing membership doc.
         allow read: if isMember(householdId) || (isSignedIn() && request.auth.uid == memberId);
-        // A user may add themself as a member (e.g. bootstrapping their
-        // own starter household). Adding other members isn't supported yet.
-        allow create: if isSignedIn() && request.auth.uid == memberId;
+        // A user may add themself as a member — either bootstrapping their
+        // own new household as its owner, or joining an existing one found
+        // via a join code (always as a plain member). Only the household's
+        // creator may self-assign the 'owner' role, so a shared join code
+        // can't be used to grant someone else elevated access.
+        allow create: if isSignedIn() && request.auth.uid == memberId &&
+          (request.resource.data.role == 'member' ||
+            (request.resource.data.role == 'owner' &&
+              request.auth.uid ==
+                get(/databases/$(database)/documents/households/$(householdId)).data.createdByUserId));
         allow update, delete: if isMember(householdId);
       }
 
