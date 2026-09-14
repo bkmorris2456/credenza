@@ -23,15 +23,31 @@ import FormControl from '@mui/material/FormControl';
 import FormLabel from '@mui/material/FormLabel';
 import IconButton from '@mui/material/IconButton';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import VpnKeyIcon from '@mui/icons-material/VpnKey';
 import { useAuth } from '../contexts/AuthContext';
 import { useHousehold } from '../contexts/HouseholdContext';
 import {
   listUserHouseholds,
   createHousehold,
   joinHouseholdByCode,
+  getHousehold,
 } from '../services/householdService';
 import { shortDisplayName } from '../services/authService';
 import type { UserHouseholdMembership } from '../types';
+
+/** A join code, large and easy to read off a phone screen, with a copy button. */
+function JoinCodeDisplay({ code }: { code: string }) {
+  return (
+    <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+      <Typography variant="h4" sx={{ letterSpacing: 2 }}>
+        {code}
+      </Typography>
+      <IconButton aria-label="Copy join code" onClick={() => navigator.clipboard?.writeText(code)}>
+        <ContentCopyIcon />
+      </IconButton>
+    </Stack>
+  );
+}
 
 export default function HouseholdsPage() {
   const navigate = useNavigate();
@@ -54,6 +70,11 @@ export default function HouseholdsPage() {
   const [migrateChoice, setMigrateChoice] = useState<'yes' | 'no'>('no');
   const [joining, setJoining] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
+
+  const [codeDialogOpen, setCodeDialogOpen] = useState(false);
+  const [codeDialogLoading, setCodeDialogLoading] = useState(false);
+  const [codeDialogError, setCodeDialogError] = useState<string | null>(null);
+  const [viewedCode, setViewedCode] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -80,6 +101,22 @@ export default function HouseholdsPage() {
       setError('Failed to switch households. Please try again.');
     } finally {
       setSwitchingId(null);
+    }
+  };
+
+  const handleViewCode = async (id: string) => {
+    setCodeDialogOpen(true);
+    setCodeDialogLoading(true);
+    setCodeDialogError(null);
+    setViewedCode(null);
+    try {
+      const household = await getHousehold(id);
+      setViewedCode(household?.joinCode ?? null);
+    } catch (err) {
+      console.error('[HouseholdsPage] getHousehold failed:', err);
+      setCodeDialogError('Failed to load join code. Please try again.');
+    } finally {
+      setCodeDialogLoading(false);
     }
   };
 
@@ -164,17 +201,26 @@ export default function HouseholdsPage() {
             key={m.id}
             divider
             secondaryAction={
-              m.id === householdId ? (
-                <Chip label="Active" color="primary" size="small" />
-              ) : (
-                <Button
+              <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                <IconButton
                   size="small"
-                  disabled={switchingId === m.id}
-                  onClick={() => handleSwitch(m.id)}
+                  aria-label={`View join code for ${m.name}`}
+                  onClick={() => handleViewCode(m.id)}
                 >
-                  Switch
-                </Button>
-              )
+                  <VpnKeyIcon fontSize="small" />
+                </IconButton>
+                {m.id === householdId ? (
+                  <Chip label="Active" color="primary" size="small" />
+                ) : (
+                  <Button
+                    size="small"
+                    disabled={switchingId === m.id}
+                    onClick={() => handleSwitch(m.id)}
+                  >
+                    Switch
+                  </Button>
+                )}
+              </Stack>
             }
           >
             <ListItemText primary={m.name} />
@@ -236,17 +282,7 @@ export default function HouseholdsPage() {
           <DialogContentText sx={{ mb: 1 }}>
             Share this code with others so they can join:
           </DialogContentText>
-          <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-            <Typography variant="h4" sx={{ letterSpacing: 2 }}>
-              {newJoinCode}
-            </Typography>
-            <IconButton
-              aria-label="Copy join code"
-              onClick={() => newJoinCode && navigator.clipboard?.writeText(newJoinCode)}
-            >
-              <ContentCopyIcon />
-            </IconButton>
-          </Stack>
+          {newJoinCode && <JoinCodeDisplay code={newJoinCode} />}
         </DialogContent>
         <DialogActions>
           <Button
@@ -259,6 +295,34 @@ export default function HouseholdsPage() {
           >
             Done
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* View an existing household's join code */}
+      <Dialog open={codeDialogOpen} onClose={() => setCodeDialogOpen(false)}>
+        <DialogTitle>Join Code</DialogTitle>
+        <DialogContent>
+          {codeDialogLoading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+              <CircularProgress size={24} />
+            </Box>
+          ) : codeDialogError ? (
+            <Typography color="error">{codeDialogError}</Typography>
+          ) : viewedCode ? (
+            <>
+              <DialogContentText sx={{ mb: 1 }}>
+                Share this code with others so they can join:
+              </DialogContentText>
+              <JoinCodeDisplay code={viewedCode} />
+            </>
+          ) : (
+            <DialogContentText>
+              This household doesn't have a shareable join code.
+            </DialogContentText>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCodeDialogOpen(false)}>Close</Button>
         </DialogActions>
       </Dialog>
 

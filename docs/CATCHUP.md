@@ -1,5 +1,15 @@
 # Catchup Log
 
+## 2026-09-13 — Guest sign-in + join-code lookup + a live rules bug fix
+
+- Added "Continue as Guest" to `LoginPage` (Firebase anonymous auth via new `signInAsGuest()` in `authService.ts`). No other app code needed changes — the household bootstrap and Firestore rules already work for anonymous users as-is.
+- **Action needed from you**: enable Authentication → Sign-in method → Anonymous in the Firebase Console — this can't be done via the CLI, and the guest button will error until it's on.
+- Also added a "view join code again" action to the Households page (key icon per row), since it was previously only shown once at creation.
+- While you were testing live: "create household" failed with a permission error. Root cause was a bug in the `firestore.rules` I wrote for C1 — the owner self-assignment check used `get()` instead of `getAfter()`, so it couldn't see the household doc being created in the very same batch. This also would have silently broken first-ever-login for brand new users (hadn't been hit yet since your test accounts already had households). Fixed and redeployed.
+- Also fixed your terminal issue: `firebase` isn't globally installed, so bare `firebase ...` commands fail outside `npm run`/`npx`. Added a `deploy:rules` npm script (`npm run deploy:rules`) so you don't need to remember the raw command.
+- `npm run lint` and `npm run build` both pass. `firestore.rules` (with the getAfter fix) has been deployed live. The guest-auth code itself hasn't been deployed to Hosting yet — still just local/dev until you run `npm run deploy`.
+- `docs/TODO.md` is empty again.
+
 ## 2026-09-13 — Household round-trip, Households page, nav wiring (TODO Sections B & C finished)
 
 Finished the rest of `docs/TODO.md`: the household network round-trip cut, and the Households page UI + nav wiring.

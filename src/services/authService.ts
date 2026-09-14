@@ -1,6 +1,7 @@
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  signInAnonymously,
   signOut,
   onAuthStateChanged,
   type User,
@@ -23,6 +24,22 @@ export async function register(email: string, password: string): Promise<User> {
     return user;
   } catch (err) {
     console.error('[authService] register:', err);
+    throw err;
+  }
+}
+
+/**
+ * Signs in as an anonymous guest — no email/password, no account to manage.
+ * Firebase ties this identity to the current browser/device; there's no way
+ * to sign back into the same guest session elsewhere, so guest data is lost
+ * if site data is cleared or the app is used on a different device.
+ */
+export async function signInAsGuest(): Promise<User> {
+  try {
+    const { user } = await signInAnonymously(auth);
+    return user;
+  } catch (err) {
+    console.error('[authService] signInAsGuest:', err);
     throw err;
   }
 }

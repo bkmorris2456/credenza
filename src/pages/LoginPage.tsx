@@ -5,14 +5,16 @@ import Typography from '@mui/material/Typography';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
 import Link from '@mui/material/Link';
+import Divider from '@mui/material/Divider';
 import CircularProgress from '@mui/material/CircularProgress';
-import { signIn, register } from '../services/authService';
+import { signIn, register, signInAsGuest } from '../services/authService';
 
 export default function LoginPage() {
   const [mode, setMode] = useState<'signIn' | 'register'>('signIn');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [guestSubmitting, setGuestSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: FormEvent) => {
@@ -34,6 +36,19 @@ export default function LoginPage() {
       );
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleGuest = async () => {
+    setGuestSubmitting(true);
+    setError(null);
+    try {
+      await signInAsGuest();
+    } catch (err) {
+      console.error('[LoginPage] guest sign-in failed:', err);
+      setError('Could not continue as a guest. Please try again.');
+    } finally {
+      setGuestSubmitting(false);
     }
   };
 
@@ -85,6 +100,20 @@ export default function LoginPage() {
           >
             {mode === 'signIn' ? 'Create one' : 'Sign in'}
           </Link>
+        </Typography>
+
+        <Divider sx={{ my: 1 }}>or</Divider>
+
+        <Button
+          variant="outlined"
+          disabled={submitting || guestSubmitting}
+          onClick={handleGuest}
+        >
+          {guestSubmitting ? <CircularProgress size={24} /> : 'Continue as Guest'}
+        </Button>
+        <Typography align="center" variant="caption" color="text.secondary">
+          Guest data stays on this device only — it can't be recovered if you clear
+          your browser data or switch devices.
         </Typography>
       </Box>
     </Container>

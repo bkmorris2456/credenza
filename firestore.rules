@@ -47,11 +47,17 @@ service cloud.firestore {
         // via a join code (always as a plain member). Only the household's
         // creator may self-assign the 'owner' role, so a shared join code
         // can't be used to grant someone else elevated access.
+        //
+        // getAfter() (not get()) is required here: the household doc and
+        // this owner membership doc are created in the same
+        // transaction/batch, and get() only sees already-committed state —
+        // it wouldn't see the household doc's createdByUserId that's being
+        // set in that same atomic write.
         allow create: if isSignedIn() && request.auth.uid == memberId &&
           (request.resource.data.role == 'member' ||
             (request.resource.data.role == 'owner' &&
               request.auth.uid ==
-                get(/databases/$(database)/documents/households/$(householdId)).data.createdByUserId));
+                getAfter(/databases/$(database)/documents/households/$(householdId)).data.createdByUserId));
         allow update, delete: if isMember(householdId);
       }
 
