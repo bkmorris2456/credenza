@@ -24,9 +24,8 @@ const statusLabel: Record<Ingredient['status'], string> = {
 interface Props {
   ingredient: Ingredient;
   onClick: (id: string) => void;
-  selectable?: boolean;
-  selected?: boolean;
-  onToggleSelect?: (id: string) => void;
+  selected: boolean;
+  onToggleSelect: (id: string) => void;
   /** Bumps quantity by `delta` (e.g. -1 or +1) without navigating to the detail page. */
   onQuantityChange?: (id: string, delta: number) => void;
 }
@@ -34,7 +33,6 @@ interface Props {
 export default function ItemRow({
   ingredient,
   onClick,
-  selectable,
   selected,
   onToggleSelect,
   onQuantityChange,
@@ -47,18 +45,16 @@ export default function ItemRow({
     <TableRow
       hover
       selected={selected}
-      onClick={() => (selectable ? onToggleSelect?.(ingredient.id) : onClick(ingredient.id))}
+      onClick={() => onClick(ingredient.id)}
       sx={{ cursor: 'pointer' }}
     >
-      {selectable && (
-        <TableCell padding="checkbox">
-          <Checkbox
-            checked={Boolean(selected)}
-            onClick={(e) => e.stopPropagation()}
-            onChange={() => onToggleSelect?.(ingredient.id)}
-          />
-        </TableCell>
-      )}
+      <TableCell padding="checkbox">
+        <Checkbox
+          checked={selected}
+          onClick={(e) => e.stopPropagation()}
+          onChange={() => onToggleSelect(ingredient.id)}
+        />
+      </TableCell>
       <TableCell>{ingredient.name}</TableCell>
       <TableCell>{ingredient.brand}</TableCell>
       <TableCell>{ingredient.category}</TableCell>

@@ -1,5 +1,10 @@
 # Catchup Log
 
+## 2026-09-14 - Always-visible selection controls
+
+- Ingredient and recipe tables now show selection checkboxes by default, plus an always-visible selected count and Delete action. Row clicks continue to open details, and deletion still requires confirmation.
+- Not run through `npm run lint` or `npm run build`; user chose to proceed to the next TODO item instead.
+
 ## 2026-09-13 — Inline quantity +/-, auto-save category/unit on blur
 
 - Ingredient table rows now have +/- buttons right in the quantity cell (`ItemRow` + `IngredientSearchPage`), writing straight to Firestore via the existing `updateIngredient`, clamped at 0.

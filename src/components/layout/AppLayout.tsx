@@ -19,7 +19,7 @@ export default function AppLayout() {
   };
 
   return (
-    <Box sx={{ pb: 7 }}>
+    <Box sx={{ pb: 10 }}>
       <AppBar position="sticky" color="default" elevation={1}>
         <Toolbar variant="dense">
           <Typography variant="h6" sx={{ flexGrow: 1 }}>

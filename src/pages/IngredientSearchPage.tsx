@@ -14,7 +14,6 @@ import Paper from '@mui/material/Paper';
 import Fab from '@mui/material/Fab';
 import AddIcon from '@mui/icons-material/Add';
 import SettingsIcon from '@mui/icons-material/Settings';
-import ChecklistIcon from '@mui/icons-material/Checklist';
 import DeleteIcon from '@mui/icons-material/Delete';
 import IconButton from '@mui/material/IconButton';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -63,7 +62,6 @@ export default function IngredientSearchPage() {
   const [error, setError] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
-  const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -169,11 +167,6 @@ export default function IngredientSearchPage() {
   const toggleValue = <T,>(list: T[], value: T, checked: boolean) =>
     checked ? [...list, value] : list.filter((v) => v !== value);
 
-  const toggleSelectMode = () => {
-    setSelectMode((prev) => !prev);
-    setSelectedIds(new Set());
-  };
-
   const toggleSelected = (id: string) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -220,7 +213,6 @@ export default function IngredientSearchPage() {
       setIngredients((prev) => prev.filter((i) => !selectedIds.has(i.id)));
       setSelectedIds(new Set());
       setDeleteDialogOpen(false);
-      setSelectMode(false);
     } catch (err) {
       console.error('[IngredientSearchPage] deleteIngredients failed:', err);
       setError('Failed to delete selected ingredients. Please try again.');
@@ -244,36 +236,27 @@ export default function IngredientSearchPage() {
           Kitchen Inventory
         </Typography>
         <Box>
-          <IconButton
-            aria-label={selectMode ? 'Exit select mode' : 'Select ingredients'}
-            color={selectMode ? 'primary' : 'default'}
-            onClick={toggleSelectMode}
-          >
-            <ChecklistIcon />
-          </IconButton>
           <IconButton aria-label="Notification settings" onClick={() => setSettingsOpen(true)}>
             <SettingsIcon />
           </IconButton>
         </Box>
       </Box>
 
-      {selectMode && (
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-          <Typography variant="body2" color="text.secondary">
-            {selectedIds.size} selected
-          </Typography>
-          <Button
-            variant="outlined"
-            color="error"
-            size="small"
-            startIcon={<DeleteIcon />}
-            disabled={selectedIds.size === 0}
-            onClick={() => setDeleteDialogOpen(true)}
-          >
-            Delete
-          </Button>
-        </Box>
-      )}
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+        <Typography variant="body2" color="text.secondary">
+          {selectedIds.size} selected
+        </Typography>
+        <Button
+          variant="outlined"
+          color="error"
+          size="small"
+          startIcon={<DeleteIcon />}
+          disabled={selectedIds.size === 0}
+          onClick={() => setDeleteDialogOpen(true)}
+        >
+          Delete
+        </Button>
+      </Box>
 
       <LowStockToast lowCount={lowCount} outCount={outCount} />
       <ExpiryToast expiredCount={expiredCount} expiringCount={expiringCount} warningDays={warningDays} />
@@ -299,15 +282,13 @@ export default function IngredientSearchPage() {
         <Table size="small">
           <TableHead>
             <TableRow>
-              {selectMode && (
-                <TableCell padding="checkbox">
-                  <Checkbox
-                    indeterminate={somePageSelected && !allPageSelected}
-                    checked={allPageSelected}
-                    onChange={toggleSelectAllOnPage}
-                  />
-                </TableCell>
-              )}
+              <TableCell padding="checkbox">
+                <Checkbox
+                  indeterminate={somePageSelected && !allPageSelected}
+                  checked={allPageSelected}
+                  onChange={toggleSelectAllOnPage}
+                />
+              </TableCell>
               <TableCell>Name</TableCell>
               <TableCell>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
@@ -450,7 +431,7 @@ export default function IngredientSearchPage() {
           <TableBody>
             {paginated.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={selectMode ? 8 : 7} align="center">
+                <TableCell colSpan={8} align="center">
                   No ingredients found.
                 </TableCell>
               </TableRow>
@@ -460,7 +441,6 @@ export default function IngredientSearchPage() {
                   key={ingredient.id}
                   ingredient={ingredient}
                   onClick={(id) => navigate(`/ingredients/${id}`)}
-                  selectable={selectMode}
                   selected={selectedIds.has(ingredient.id)}
                   onToggleSelect={toggleSelected}
                   onQuantityChange={handleQuantityChange}
@@ -483,7 +463,7 @@ export default function IngredientSearchPage() {
       <Fab
         color="primary"
         aria-label="Add ingredient"
-        sx={{ position: 'fixed', bottom: 72, right: 16 }}
+        sx={{ position: 'fixed', bottom: 92, right: 16 }}
         onClick={() => navigate('/ingredients/new')}
       >
         <AddIcon />

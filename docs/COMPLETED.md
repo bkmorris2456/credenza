@@ -1,5 +1,11 @@
 # Completed
 
+## 2026-09-14 - Always-visible ingredient and recipe selection
+
+- Ingredient and recipe tables now always show a checkbox column and select-all checkbox, with the selected count and Delete action always available above the table.
+- Clicking a table row still opens its detail page; only the checkbox changes selection. Bulk deletion remains confirmation-gated.
+- Static code review completed; `npm run lint` and `npm run build` were not run at the user's request.
+
 ## 2026-09-13 — Inline quantity +/-, auto-save category/unit on blur
 
 - `ItemRow.tsx`: quantity cell now has small +/- `IconButton`s flanking the value, calling a new `onQuantityChange(id, delta)` prop; each click `stopPropagation()`s so it doesn't also trigger the row's navigate/select-row click. The minus button disables at 0 (quantity can't go negative).

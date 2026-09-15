@@ -15,7 +15,17 @@ export default function BottomNav() {
   const current = routes.indexOf(location.pathname);
 
   return (
-    <Paper sx={{ position: 'fixed', bottom: 0, left: 0, right: 0 }} elevation={3}>
+    <Paper
+      sx={{
+        position: 'fixed',
+        bottom: 'max(12px, env(safe-area-inset-bottom))',
+        left: { xs: 12, sm: 'calc(50% - 300px)' },
+        right: { xs: 12, sm: 'calc(50% - 300px)' },
+        borderRadius: 3,
+        overflow: 'hidden',
+      }}
+      elevation={3}
+    >
       <BottomNavigation
         value={current}
         onChange={(_, idx) => navigate(routes[idx])}

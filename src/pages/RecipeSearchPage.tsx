@@ -14,7 +14,6 @@ import Paper from '@mui/material/Paper';
 import Fab from '@mui/material/Fab';
 import Chip from '@mui/material/Chip';
 import AddIcon from '@mui/icons-material/Add';
-import ChecklistIcon from '@mui/icons-material/Checklist';
 import DeleteIcon from '@mui/icons-material/Delete';
 import IconButton from '@mui/material/IconButton';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -65,7 +64,6 @@ export default function RecipeSearchPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -159,11 +157,6 @@ export default function RecipeSearchPage() {
   const safePage = Math.min(page, maxPage);
   const paginated = filtered.slice(safePage * rowsPerPage, safePage * rowsPerPage + rowsPerPage);
 
-  const toggleSelectMode = () => {
-    setSelectMode((prev) => !prev);
-    setSelectedIds(new Set());
-  };
-
   const toggleSelected = (id: string) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -197,7 +190,6 @@ export default function RecipeSearchPage() {
       setRecipes((prev) => prev.filter((r) => !selectedIds.has(r.id)));
       setSelectedIds(new Set());
       setDeleteDialogOpen(false);
-      setSelectMode(false);
     } catch (err) {
       console.error('[RecipeSearchPage] deleteRecipes failed:', err);
       setError('Failed to delete selected recipes. Please try again.');
@@ -220,32 +212,23 @@ export default function RecipeSearchPage() {
         <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
           Recipes
         </Typography>
-        <IconButton
-          aria-label={selectMode ? 'Exit select mode' : 'Select recipes'}
-          color={selectMode ? 'primary' : 'default'}
-          onClick={toggleSelectMode}
-        >
-          <ChecklistIcon />
-        </IconButton>
       </Box>
 
-      {selectMode && (
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-          <Typography variant="body2" color="text.secondary">
-            {selectedIds.size} selected
-          </Typography>
-          <Button
-            variant="outlined"
-            color="error"
-            size="small"
-            startIcon={<DeleteIcon />}
-            disabled={selectedIds.size === 0}
-            onClick={() => setDeleteDialogOpen(true)}
-          >
-            Delete
-          </Button>
-        </Box>
-      )}
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+        <Typography variant="body2" color="text.secondary">
+          {selectedIds.size} selected
+        </Typography>
+        <Button
+          variant="outlined"
+          color="error"
+          size="small"
+          startIcon={<DeleteIcon />}
+          disabled={selectedIds.size === 0}
+          onClick={() => setDeleteDialogOpen(true)}
+        >
+          Delete
+        </Button>
+      </Box>
 
       <Box sx={{ mb: 2 }}>
         <SearchBar value={search} onChange={(v) => { setSearch(v); setPage(0); }} />
@@ -261,15 +244,13 @@ export default function RecipeSearchPage() {
         <Table size="small">
           <TableHead>
             <TableRow>
-              {selectMode && (
-                <TableCell padding="checkbox">
-                  <Checkbox
-                    indeterminate={somePageSelected && !allPageSelected}
-                    checked={allPageSelected}
-                    onChange={toggleSelectAllOnPage}
-                  />
-                </TableCell>
-              )}
+              <TableCell padding="checkbox">
+                <Checkbox
+                  indeterminate={somePageSelected && !allPageSelected}
+                  checked={allPageSelected}
+                  onChange={toggleSelectAllOnPage}
+                />
+              </TableCell>
               <TableCell>Name</TableCell>
               <TableCell>Time</TableCell>
               <TableCell>
@@ -346,7 +327,7 @@ export default function RecipeSearchPage() {
           <TableBody>
             {paginated.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={selectMode ? 6 : 5} align="center">
+                <TableCell colSpan={6} align="center">
                   No recipes found.
                 </TableCell>
               </TableRow>
@@ -358,20 +339,16 @@ export default function RecipeSearchPage() {
                     key={recipe.id}
                     hover
                     selected={selectedIds.has(recipe.id)}
-                    onClick={() =>
-                      selectMode ? toggleSelected(recipe.id) : navigate(`/recipes/${recipe.id}`)
-                    }
+                    onClick={() => navigate(`/recipes/${recipe.id}`)}
                     sx={{ cursor: 'pointer' }}
                   >
-                    {selectMode && (
-                      <TableCell padding="checkbox">
-                        <Checkbox
-                          checked={selectedIds.has(recipe.id)}
-                          onClick={(e) => e.stopPropagation()}
-                          onChange={() => toggleSelected(recipe.id)}
-                        />
-                      </TableCell>
-                    )}
+                    <TableCell padding="checkbox">
+                      <Checkbox
+                        checked={selectedIds.has(recipe.id)}
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={() => toggleSelected(recipe.id)}
+                      />
+                    </TableCell>
                     <TableCell>{recipe.name}</TableCell>
                     <TableCell>{formatTime(recipe)}</TableCell>
                     <TableCell>{recipe.servings}</TableCell>
@@ -403,7 +380,7 @@ export default function RecipeSearchPage() {
       <Fab
         color="primary"
         aria-label="Add recipe"
-        sx={{ position: 'fixed', bottom: 72, right: 16 }}
+        sx={{ position: 'fixed', bottom: 92, right: 16 }}
         onClick={() => navigate('/recipes/new')}
       >
         <AddIcon />
