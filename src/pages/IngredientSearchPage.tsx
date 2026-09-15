@@ -36,7 +36,7 @@ import ExpiryToast from '../components/ui/ExpiryToast';
 import NotificationSettingsDialog from '../components/ui/NotificationSettingsDialog';
 import ItemRow from '../components/ui/ItemRow';
 import ColumnFilterMenu from '../components/ui/ColumnFilterMenu';
-import { subscribeIngredients, deleteIngredients } from '../services/ingredientService';
+import { subscribeIngredients, deleteIngredients, updateIngredient } from '../services/ingredientService';
 import { useHousehold } from '../contexts/HouseholdContext';
 import { DEFAULT_EXPIRY_WARNING_DAYS } from '../types';
 import type { Ingredient } from '../types';
@@ -181,6 +181,19 @@ export default function IngredientSearchPage() {
       else next.add(id);
       return next;
     });
+  };
+
+  const handleQuantityChange = async (id: string, delta: number) => {
+    const current = ingredients.find((i) => i.id === id);
+    if (!current || !householdId) return;
+    const nextQuantity = Math.max(0, current.quantity + delta);
+    if (nextQuantity === current.quantity) return;
+    try {
+      await updateIngredient(householdId, id, { quantity: nextQuantity });
+    } catch (err) {
+      console.error('[IngredientSearchPage] quantity update failed:', err);
+      setError('Failed to update quantity. Please try again.');
+    }
   };
 
   const pageIds = paginated.map((i) => i.id);
@@ -450,6 +463,7 @@ export default function IngredientSearchPage() {
                   selectable={selectMode}
                   selected={selectedIds.has(ingredient.id)}
                   onToggleSelect={toggleSelected}
+                  onQuantityChange={handleQuantityChange}
                 />
               ))
             )}

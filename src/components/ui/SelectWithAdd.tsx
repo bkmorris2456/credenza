@@ -1,4 +1,4 @@
-import { useState, type KeyboardEvent } from 'react';
+import { useState, type FocusEvent, type KeyboardEvent } from 'react';
 import Box from '@mui/material/Box';
 import TextField from '@mui/material/TextField';
 import MenuItem from '@mui/material/MenuItem';
@@ -68,9 +68,24 @@ export default function SelectWithAdd({
     }
   };
 
+  /**
+   * Clicking away saves whatever was typed, same as the check button — but
+   * only once focus actually leaves this whole control. Without the
+   * contains() guard, clicking the check/cancel buttons would also blur the
+   * text field first and trigger a duplicate (or conflicting) save/cancel.
+   */
+  const handleBlur = (e: FocusEvent<HTMLDivElement>) => {
+    if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
+    if (draft.trim()) {
+      handleConfirm();
+    } else {
+      setAdding(false);
+    }
+  };
+
   if (adding) {
     return (
-      <Box sx={{ flex: 1 }}>
+      <Box sx={{ flex: 1 }} onBlur={handleBlur}>
         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
           <TextField
             label={`New ${label}`}

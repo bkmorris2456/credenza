@@ -2,6 +2,9 @@ import TableRow from '@mui/material/TableRow';
 import TableCell from '@mui/material/TableCell';
 import Checkbox from '@mui/material/Checkbox';
 import Chip from '@mui/material/Chip';
+import IconButton from '@mui/material/IconButton';
+import AddIcon from '@mui/icons-material/Add';
+import RemoveIcon from '@mui/icons-material/Remove';
 import type { Ingredient } from '../../types';
 
 const statusColor: Record<Ingredient['status'], 'success' | 'warning' | 'error' | 'default'> = {
@@ -24,9 +27,18 @@ interface Props {
   selectable?: boolean;
   selected?: boolean;
   onToggleSelect?: (id: string) => void;
+  /** Bumps quantity by `delta` (e.g. -1 or +1) without navigating to the detail page. */
+  onQuantityChange?: (id: string, delta: number) => void;
 }
 
-export default function ItemRow({ ingredient, onClick, selectable, selected, onToggleSelect }: Props) {
+export default function ItemRow({
+  ingredient,
+  onClick,
+  selectable,
+  selected,
+  onToggleSelect,
+  onQuantityChange,
+}: Props) {
   const isExpired = Boolean(
     ingredient.expirationDate && ingredient.expirationDate.toDate() < new Date()
   );
@@ -50,8 +62,29 @@ export default function ItemRow({ ingredient, onClick, selectable, selected, onT
       <TableCell>{ingredient.name}</TableCell>
       <TableCell>{ingredient.brand}</TableCell>
       <TableCell>{ingredient.category}</TableCell>
-      <TableCell>
+      <TableCell sx={{ whiteSpace: 'nowrap' }}>
+        <IconButton
+          size="small"
+          aria-label={`Decrease ${ingredient.name} quantity`}
+          disabled={ingredient.quantity <= 0}
+          onClick={(e) => {
+            e.stopPropagation();
+            onQuantityChange?.(ingredient.id, -1);
+          }}
+        >
+          <RemoveIcon fontSize="inherit" />
+        </IconButton>
         {ingredient.quantity} {ingredient.unit}
+        <IconButton
+          size="small"
+          aria-label={`Increase ${ingredient.name} quantity`}
+          onClick={(e) => {
+            e.stopPropagation();
+            onQuantityChange?.(ingredient.id, 1);
+          }}
+        >
+          <AddIcon fontSize="inherit" />
+        </IconButton>
       </TableCell>
       <TableCell sx={isExpired ? { color: 'error.main' } : undefined}>
         {ingredient.expirationDate ? ingredient.expirationDate.toDate().toLocaleDateString() : '—'}

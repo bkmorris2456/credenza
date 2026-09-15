@@ -1,5 +1,12 @@
 # Catchup Log
 
+## 2026-09-13 — Inline quantity +/-, auto-save category/unit on blur
+
+- Ingredient table rows now have +/- buttons right in the quantity cell (`ItemRow` + `IngredientSearchPage`), writing straight to Firestore via the existing `updateIngredient`, clamped at 0.
+- The "add new category/unit" inline field on the ingredient form now auto-saves what you typed when you click away, not just via the check button — careful with a `contains()` blur guard so it doesn't fight with clicking the check/cancel buttons themselves.
+- `npm run lint`/`npm run build` pass. Nothing tested in a browser yet.
+- `docs/TODO.md` is empty again.
+
 ## 2026-09-13 — Guest sign-in + join-code lookup + a live rules bug fix
 
 - Added "Continue as Guest" to `LoginPage` (Firebase anonymous auth via new `signInAsGuest()` in `authService.ts`). No other app code needed changes — the household bootstrap and Firestore rules already work for anonymous users as-is.

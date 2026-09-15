@@ -1,5 +1,12 @@
 # Completed
 
+## 2026-09-13 — Inline quantity +/-, auto-save category/unit on blur
+
+- `ItemRow.tsx`: quantity cell now has small +/- `IconButton`s flanking the value, calling a new `onQuantityChange(id, delta)` prop; each click `stopPropagation()`s so it doesn't also trigger the row's navigate/select-row click. The minus button disables at 0 (quantity can't go negative).
+- `IngredientSearchPage.tsx`: added `handleQuantityChange`, which clamps to 0 and calls the existing `updateIngredient`. No manual local-state patching needed — the page's `subscribeIngredients` listener (from the local-cache work) picks up the write's optimistic local-cache update almost immediately.
+- `SelectWithAdd.tsx` (category/unit "add new" inline field on the ingredient form): added an `onBlur` handler that auto-saves the typed draft, same as clicking the check button — but only once focus actually leaves the whole control (`e.currentTarget.contains(e.relatedTarget)` guard), so clicking the check/cancel buttons themselves still behaves correctly instead of double-firing or getting swallowed by a blur-triggered save-in-flight. Blurring with nothing typed just closes back to the dropdown instead of erroring.
+- Verified with `npm run lint` (clean) and `npm run build` (succeeds). Not yet tested in a browser.
+
 ## 2026-09-13 — Persistent logout button
 
 - `AppLayout.tsx` now renders a sticky top `AppBar` ("Credenza" + a logout icon button) above every authenticated page, alongside the existing bottom nav — so logging out no longer requires hunting for it on a specific page. Calls the existing `logOut()`; `AuthContext`'s listener already redirects to `LoginPage` automatically once signed out.
